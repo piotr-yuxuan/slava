@@ -15,13 +15,13 @@ representations:
 To fulfill this goal it comes with wrappers around
  `io.confluent.kafka.streams.serdes.avro.SpecificAvroSerde` and
  `io.confluent.kafka.streams.serdes.avro.GenericAvroSerde`
- schema-registry compatible Avro
- `org.apache.kafka.common.serialization.Serde<T>` implementations. It
- also provides ancillary functions to use in Clojure code.
+ schema-registry compatible Avro implementations of
+ `org.apache.kafka.common.serialization.Serde<T>`. It also provides
+ ancillary functions to use in Clojure code.
 
 # What can I use it for?
 
-General avro data handling
+General avro data handling. Allows simpler Kafka Streams Clojure code.
 
 ![слава советскому народу](resources/слава-советскому-народу.jpg)
 
