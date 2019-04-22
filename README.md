@@ -1,4 +1,4 @@
-# 🕊 [slava](https://clojars.org/slava)
+# 🇷🇺 [slava](https://clojars.org/slava)
 
 - [![Clojars Project](https://img.shields.io/clojars/v/com.slava.svg)](https://clojars.org/com.slava)
 - [![cljdoc badge](https://cljdoc.org/badge/com.slava/com.slava)](https://cljdoc.org/d/com.slava/com.slava)
