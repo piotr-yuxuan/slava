@@ -1,7 +1,6 @@
 package com.slava;
 
-import org.apache.avro.specific.SpecificRecord;
-import org.apache.kafka.common.annotation.InterfaceStability.Unstable;
+import org.apache.kafka.common.annotation.InterfaceStability;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -11,30 +10,27 @@ import java.util.Map;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 
-/**
- * Copied from {@link io.confluent.kafka.streams.serdes.avro.SpecificAvroSerde}
- */
-@Unstable
-public class SpecificAvroSerde<T extends SpecificRecord> implements Serde<T> {
-    private final Serde<T> inner;
+@InterfaceStability.Unstable
+public class NativeGenericAvroSerde implements Serde<Map> {
+    private final Serde<Map> inner;
 
-    public SpecificAvroSerde() {
-        this.inner = Serdes.serdeFrom(new SpecificAvroSerializer(), new SpecificAvroDeserializer());
+    public NativeGenericAvroSerde() {
+        this.inner = Serdes.serdeFrom(new NativeGenericAvroSerializer(), new NativeGenericAvroDeserializer());
     }
 
-    public SpecificAvroSerde(SchemaRegistryClient client) {
+    public NativeGenericAvroSerde(SchemaRegistryClient client) {
         if (client == null) {
             throw new IllegalArgumentException("schema registry client must not be null");
         } else {
-            this.inner = Serdes.serdeFrom(new SpecificAvroSerializer(client), new SpecificAvroDeserializer(client));
+            this.inner = Serdes.serdeFrom(new NativeGenericAvroSerializer(client), new NativeGenericAvroDeserializer(client));
         }
     }
 
-    public Serializer<T> serializer() {
+    public Serializer<Map> serializer() {
         return this.inner.serializer();
     }
 
-    public Deserializer<T> deserializer() {
+    public Deserializer<Map> deserializer() {
         return this.inner.deserializer();
     }
 
