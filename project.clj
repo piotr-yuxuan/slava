@@ -10,7 +10,7 @@
                  [org.clojure/test.check "0.10.0"]
                  [org.clojure/spec.alpha "0.2.176"]
                  [clj-time "0.15.2"]
-                 [org.apache.kafka/kafka_2.12 "2.3.1"]
+                 [org.apache.kafka/kafka_2.12 "5.3.1-ce"]
                  [org.slf4j/slf4j-nop "2.0.0-alpha1"]
                  [io.confluent/kafka-streams-avro-serde "5.3.1"]]
   :main com.slava.core

@@ -8,18 +8,18 @@ import java.util.Map;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 
 @Unstable
-public class NativeGenericAvroSerializer implements Serializer<Map> {
+public class NativeAvroSerializer implements Serializer<Map> {
     private final KafkaNativeAvroSerializer inner;
 
-    public NativeGenericAvroSerializer() {
+    public NativeAvroSerializer() {
         this.inner = new KafkaNativeAvroSerializer();
     }
 
-    NativeGenericAvroSerializer(SchemaRegistryClient client) {
+    NativeAvroSerializer(SchemaRegistryClient client) {
         this.inner = new KafkaNativeAvroSerializer(client);
     }
 
-    NativeGenericAvroSerializer(KafkaNativeAvroSerializer kafkaAvroSerializer) {
+    NativeAvroSerializer(KafkaNativeAvroSerializer kafkaAvroSerializer) {
         this.inner = kafkaAvroSerializer;
     }
 

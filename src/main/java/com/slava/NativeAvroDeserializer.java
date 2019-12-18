@@ -8,14 +8,14 @@ import java.util.Map;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 
 @Unstable
-public class NativeGenericAvroDeserializer implements Deserializer<Map> {
+public class NativeAvroDeserializer implements Deserializer<Map> {
     private final KafkaNativeAvroDeserializer inner;
 
-    public NativeGenericAvroDeserializer() {
+    public NativeAvroDeserializer() {
         this.inner = new KafkaNativeAvroDeserializer();
     }
 
-    NativeGenericAvroDeserializer(SchemaRegistryClient client) {
+    NativeAvroDeserializer(SchemaRegistryClient client) {
         this.inner = new KafkaNativeAvroDeserializer(client);
     }
 

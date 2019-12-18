@@ -11,18 +11,18 @@ import java.util.Map;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 
 @InterfaceStability.Unstable
-public class NativeGenericAvroSerde implements Serde<Map> {
+public class NativeAvroSerde implements Serde<Map> {
     private final Serde<Map> inner;
 
-    public NativeGenericAvroSerde() {
-        this.inner = Serdes.serdeFrom(new NativeGenericAvroSerializer(), new NativeGenericAvroDeserializer());
+    public NativeAvroSerde() {
+        this.inner = Serdes.serdeFrom(new NativeAvroSerializer(), new NativeAvroDeserializer());
     }
 
-    public NativeGenericAvroSerde(SchemaRegistryClient client) {
+    public NativeAvroSerde(SchemaRegistryClient client) {
         if (client == null) {
             throw new IllegalArgumentException("schema registry client must not be null");
         } else {
-            this.inner = Serdes.serdeFrom(new NativeGenericAvroSerializer(client), new NativeGenericAvroDeserializer(client));
+            this.inner = Serdes.serdeFrom(new NativeAvroSerializer(client), new NativeAvroDeserializer(client));
         }
     }
 
