@@ -24,7 +24,7 @@ public class NativeAvroDeserializer implements Deserializer<Map> {
     }
 
     public Map deserialize(String topic, byte[] data) {
-        return (Map) this.inner.deserialize(topic, data);
+        return this.inner.deserialize(topic, data);
     }
 
     public void close() {

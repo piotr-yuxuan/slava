@@ -1,11 +1,10 @@
 (ns com.slava.specs
   (:require [clojure.spec.alpha :as s]
-            [clojure.test.check.generators :as test.g]
-            [clojure.spec.gen.alpha :as gen])
+            [clojure.test.check.generators :as test.g])
   (:import (org.apache.avro Schema Schema$EnumSchema)
            (org.apache.avro.generic GenericData$EnumSymbol GenericData$StringType)
            (org.apache.avro.util Utf8)
-           (org.apache.avro.generic GenericData$StringType GenericData$Fixed GenericRecordBuilder GenericRecord)
+           (org.apache.avro.generic GenericData$StringType GenericData$Fixed GenericRecord)
            (org.apache.avro Schema Schema$EnumSchema Schema$FixedSchema Schema$RecordSchema Schema$ArraySchema Schema$MapSchema Schema$StringSchema Schema$BytesSchema Schema$IntSchema Schema$LongSchema Schema$FloatSchema Schema$DoubleSchema Schema$BooleanSchema Schema$NullSchema Schema$Field SchemaBuilder$MapDefault SchemaBuilder SchemaBuilder$FieldAssembler SchemaBuilder$RecordBuilder)
            (java.nio ByteBuffer)))
 

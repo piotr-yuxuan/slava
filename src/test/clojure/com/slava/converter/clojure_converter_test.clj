@@ -1,4 +1,4 @@
-(ns com.slava.generic-avro-serde-test
+(ns com.slava.converter.clojure-converter-test
   "I prefer no abstraction than a bad abstraction: this explains the
   boilerplate code. On the bright side, you're likely to focus on some
   test and not to read this file from beginning to the end, so the
@@ -10,60 +10,25 @@
   well on multiple use cases and integrates properly with underlying
   Confluent Serde -- which does the actual job."
   (:require [clojure.test :refer :all]
-            [clojure.java.io :as io]
             [clojure.spec.alpha :as s]
             [clojure.spec.gen.alpha :as gen]
+            [com.slava.converter.clojure-converter :refer [generic-data-record->map map->generic-data-record]]
             [com.slava.specs :refer :all])
-  (:import (org.apache.avro SchemaBuilder SchemaBuilder$RecordBuilder SchemaBuilder$FieldAssembler Schema AvroMissingFieldException SchemaBuilder$ArrayDefault Schema$EnumSchema SchemaBuilder$MapDefault Schema$FixedSchema SchemaBuilder$UnionAccumulator Schema$Field)
+  (:import (org.apache.avro SchemaBuilder SchemaBuilder$RecordBuilder SchemaBuilder$FieldAssembler Schema AvroMissingFieldException SchemaBuilder$ArrayDefault SchemaBuilder$MapDefault SchemaBuilder$UnionAccumulator)
            (io.confluent.kafka.schemaregistry.client MockSchemaRegistryClient)
            (io.confluent.kafka.streams.serdes.avro GenericAvroSerde)
            (com.slava NativeAvroSerde)
-           (org.apache.avro.generic GenericRecordBuilder GenericData$Record GenericData$StringType)
+           (org.apache.avro.generic GenericRecordBuilder GenericData$StringType)
            (org.apache.kafka.common.errors SerializationException)
-           (org.apache.avro.mojo SchemaMojo AbstractAvroMojo)
-           (java.lang.reflect Field)
-           (java.nio ByteBuffer)))
-
-(defn failed-test-with-specific-schema-generation []
-  ;; I should better use https://github.com/TimMoore/mojo-executor
-  (spit
-    (io/as-file "test-resources/slava.avsc")
-    (-> (SchemaBuilder/builder)
-        (.record "Empty")
-        ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
-        ^SchemaBuilder$FieldAssembler .fields
-        ^Schema .endRecord
-        .toString))
-  (let [mojo (SchemaMojo.)]
-    (doto ^Field (.getDeclaredField ^Class AbstractAvroMojo "sourceDirectory")
-      (.setAccessible true)
-      (.set mojo (io/as-file "test-resources"))
-      (.setAccessible false))
-    (doto ^Field (.getDeclaredField ^Class AbstractAvroMojo "outputDirectory")
-      (.setAccessible true)
-      (.set mojo (io/as-file "target/classes"))
-      (.setAccessible false))
-    (.execute mojo)))
-
-(defn- generic-data-record->map
-  [^GenericData$Record record]
-  (reduce (fn [m field] (assoc m (.name field) (.get record ^String (.name field))))
-          {}
-          (.getFields (.getSchema record))))
-
-(defn map->generic-data-record
-  [^Schema schema m]
-  (let [builder (new GenericRecordBuilder schema)]
-    (doseq [^String field-name (->> (.getFields schema)
-                                    (map #(.name %))
-                                    (filter #(contains? m %)))]
-      (.set builder field-name (get m field-name)))
-    (.build builder)))
+           (java.nio ByteBuffer)
+           (com.slava.converter ClojureConversionStrategy)))
 
 (deftest field-logic-test
   (let [topic "simple-string"
         client (MockSchemaRegistryClient.)
-        serde-config {"schema.registry.url" "mock://"}
+        serde-config {"schema.registry.url" "mock://"
+                      "org.apache.avro.schema.key" "org.apache.avro.schema"
+                      "org.apache.avro.conversion.strategy" (.getName ClojureConversionStrategy)}
         actual-serde (doto (NativeAvroSerde. client)
                        (.configure serde-config (boolean (not :key))))
         control-serde (doto (GenericAvroSerde. client)
@@ -76,7 +41,7 @@
                        .endRecord)]
         (testing "empty record"
           (let [datum-map {}
-                actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.Schema" schema)
+                actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                       (.serialize (.serializer actual-serde) topic)
                                                       (.deserialize (.deserializer control-serde) topic))
                 actual-with-native-deserialization (->> (.build (GenericRecordBuilder. ^Schema schema))
@@ -90,7 +55,7 @@
                    actual-with-native-deserialization))))
         (testing "populated record"
           (let [datum-map {"someField" "some value"}
-                actual (->> (assoc datum-map "org.apache.avro.Schema" schema)
+                actual (->> (assoc datum-map "org.apache.avro.schema" schema)
                             (.serialize (.serializer actual-serde) topic)
                             (.deserialize (.deserializer control-serde) topic))
                 control (->> (.build (GenericRecordBuilder. ^Schema schema))
@@ -106,14 +71,14 @@
                        .endRecord)]
         (testing "missing field"
           (try (let [datum-map {}]
-                 (->> (assoc datum-map "org.apache.avro.Schema" schema)
+                 (->> (assoc datum-map "org.apache.avro.schema" schema)
                       (.serialize (.serializer actual-serde) topic)))
                (throw (ex-message "test failed"))
                (catch AvroMissingFieldException e
                  (is (= "Field noDefault type:STRING pos:0 not set and has no default value" (.getMessage e))))))
         (testing "field present"
           (let [datum-map {"noDefault" ""}
-                actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.Schema" schema)
+                actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                       (.serialize (.serializer actual-serde) topic)
                                                       (.deserialize (.deserializer control-serde) topic))
                 actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
@@ -127,14 +92,14 @@
                    actual-with-native-deserialization))))
         (testing "bad type"
           (try (let [datum-map {"noDefault" 1}]
-                 (->> (assoc datum-map "org.apache.avro.Schema" schema)
+                 (->> (assoc datum-map "org.apache.avro.schema" schema)
                       (.serialize (.serializer actual-serde) topic)))
                (throw (ex-message "test failed"))
                (catch SerializationException e
                  (is (= "Error serializing Avro message" (.getMessage e))))))
         (testing "forbidden nil value"
           (try (let [datum-map {"noDefault" 1}]
-                 (->> (assoc datum-map "org.apache.avro.Schema" schema)
+                 (->> (assoc datum-map "org.apache.avro.schema" schema)
                       (.serialize (.serializer actual-serde) topic)))
                (throw (ex-message "test failed"))
                (catch SerializationException e
@@ -148,7 +113,7 @@
                        .endRecord)]
         (testing "missing field"
           (let [datum-map {}
-                actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.Schema" schema)
+                actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                       (.serialize (.serializer actual-serde) topic)
                                                       (.deserialize (.deserializer control-serde) topic))
                 actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
@@ -162,7 +127,7 @@
                    actual-with-native-deserialization))))
         (testing "field present"
           (let [datum-map {"stringDefault" "some value"}
-                actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.Schema" schema)
+                actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                       (.serialize (.serializer actual-serde) topic)
                                                       (.deserialize (.deserializer control-serde) topic))
                 actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
@@ -176,14 +141,14 @@
                    actual-with-native-deserialization))))
         (testing "bad type"
           (try (let [datum-map {"stringDefault" 1}]
-                 (->> (assoc datum-map "org.apache.avro.Schema" schema)
+                 (->> (assoc datum-map "org.apache.avro.schema" schema)
                       (.serialize (.serializer actual-serde) topic)))
                (throw (ex-message "test failed"))
                (catch SerializationException e
                  (is (= "Error serializing Avro message" (.getMessage e))))))
         (testing "forbidden nil value"
           (try (let [datum-map {"stringDefault" 1}]
-                 (->> (assoc datum-map "org.apache.avro.Schema" schema)
+                 (->> (assoc datum-map "org.apache.avro.schema" schema)
                       (.serialize (.serializer actual-serde) topic)))
                (throw (ex-message "test failed"))
                (catch SerializationException e
@@ -197,14 +162,14 @@
                        .endRecord)]
         (testing "missing field"
           (try (let [datum-map {}]
-                 (->> (assoc datum-map "org.apache.avro.Schema" schema)
+                 (->> (assoc datum-map "org.apache.avro.schema" schema)
                       (.serialize (.serializer actual-serde) topic)))
                (throw (ex-message "test failed"))
                (catch AvroMissingFieldException e
                  (is (= "Field stringNullableNoDefault type:UNION pos:0 not set and has no default value" (.getMessage e))))))
         (testing "field present"
           (let [datum-map {"stringNullableNoDefault" "some value"}
-                actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.Schema" schema)
+                actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                       (.serialize (.serializer actual-serde) topic)
                                                       (.deserialize (.deserializer control-serde) topic))
                 actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
@@ -217,7 +182,7 @@
             (is (= (generic-data-record->map actual-with-native-serialization)
                    actual-with-native-deserialization)))
           (let [datum-map {"stringNullableNoDefault" nil}
-                actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.Schema" schema)
+                actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                       (.serialize (.serializer actual-serde) topic)
                                                       (.deserialize (.deserializer control-serde) topic))
                 actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
@@ -231,7 +196,7 @@
                    actual-with-native-deserialization))))
         (testing "bad type"
           (try (let [datum-map {"stringNullableNoDefault" 1}]
-                 (->> (assoc datum-map "org.apache.avro.Schema" schema)
+                 (->> (assoc datum-map "org.apache.avro.schema" schema)
                       (.serialize (.serializer actual-serde) topic)))
                (throw (ex-message "test failed"))
                (catch SerializationException e
@@ -246,7 +211,7 @@
                        (.name utf-8-avro-name) .type .stringType .noDefault
                        .endRecord)]
         (let [datum-map (assoc {} utf-8-avro-name utf-8-avro-string)
-              actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.Schema" schema)
+              actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                     (.serialize (.serializer actual-serde) topic)
                                                     (.deserialize (.deserializer control-serde) topic))
               actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
@@ -263,7 +228,9 @@
   "https://avro.apache.org/docs/1.9.1/spec.html#schema_primitive"
   (let [topic "simple-string"
         client (MockSchemaRegistryClient.)
-        serde-config {"schema.registry.url" "mock://"}
+        serde-config {"schema.registry.url" "mock://"
+                      "org.apache.avro.schema.key" "org.apache.avro.schema"
+                      "org.apache.avro.conversion.strategy" (.getName ClojureConversionStrategy)}
         actual-serde (doto (NativeAvroSerde. client)
                        (.configure serde-config (boolean (not :key))))
         control-serde (doto (GenericAvroSerde. client)
@@ -276,7 +243,7 @@
                        (.name "field") .type .nullType .noDefault
                        .endRecord)
             datum-map {"field" (gen/generate (s/gen avro-null?))}
-            actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.Schema" schema)
+            actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                   (.serialize (.serializer actual-serde) topic)
                                                   (.deserialize (.deserializer control-serde) topic))
             actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
@@ -297,7 +264,7 @@
                        .endRecord)
             field-value (gen/generate (s/gen avro-boolean?))
             datum-map {"field" field-value}
-            actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.Schema" schema)
+            actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                   (.serialize (.serializer actual-serde) topic)
                                                   (.deserialize (.deserializer control-serde) topic))
             actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
@@ -318,7 +285,7 @@
                        .endRecord)
             field-value (gen/generate (s/gen avro-int?))
             datum-map {"field" field-value}
-            actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.Schema" schema)
+            actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                   (.serialize (.serializer actual-serde) topic)
                                                   (.deserialize (.deserializer control-serde) topic))
             actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
@@ -341,7 +308,7 @@
                        .endRecord)
             field-value (gen/generate (s/gen avro-long?))
             datum-map {"field" field-value}
-            actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.Schema" schema)
+            actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                   (.serialize (.serializer actual-serde) topic)
                                                   (.deserialize (.deserializer control-serde) topic))
             actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
@@ -364,7 +331,7 @@
                        .endRecord)
             field-value (gen/generate (s/gen avro-float?))
             datum-map {"field" field-value}
-            actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.Schema" schema)
+            actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                   (.serialize (.serializer actual-serde) topic)
                                                   (.deserialize (.deserializer control-serde) topic))
             actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
@@ -387,7 +354,7 @@
                        .endRecord)
             field-value (gen/generate (s/gen avro-double?))
             datum-map {"field" field-value}
-            actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.Schema" schema)
+            actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                   (.serialize (.serializer actual-serde) topic)
                                                   (.deserialize (.deserializer control-serde) topic))
             actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
@@ -410,7 +377,7 @@
                        .endRecord)
             field-value (gen/generate (s/gen (->avro-bytes?)))
             datum-map {"field" field-value}
-            actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.Schema" schema)
+            actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                   (.serialize (.serializer actual-serde) topic)
                                                   (.deserialize (.deserializer control-serde) topic))
             actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
@@ -444,7 +411,7 @@
                        "stringTypeUtf8" string-type-utf8
                        "stringTypeCharSequence" string-type-char-sequence
                        "stringTypeString" string-type-string}
-            actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.Schema" schema)
+            actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                   (.serialize (.serializer actual-serde) topic)
                                                   (.deserialize (.deserializer control-serde) topic))
             actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
@@ -464,7 +431,9 @@
   "https://avro.apache.org/docs/current/spec.html#schema_complex"
   (let [topic "simple-string"
         client (MockSchemaRegistryClient.)
-        serde-config {"schema.registry.url" "mock://"}
+        serde-config {"schema.registry.url" "mock://"
+                      "org.apache.avro.schema.key" "org.apache.avro.schema"
+                      "org.apache.avro.conversion.strategy" (.getName ClojureConversionStrategy)}
         actual-serde (doto (NativeAvroSerde. client)
                        (.configure serde-config (boolean (not :key))))
         control-serde (doto (GenericAvroSerde. client)
@@ -491,7 +460,7 @@
                        .endRecord)
             field-value (.build (GenericRecordBuilder. ^Schema nested-schema))
             datum-map {"field" field-value}
-            actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.Schema" schema)
+            actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                   (.serialize (.serializer actual-serde) topic)
                                                   (.deserialize (.deserializer control-serde) topic))
             actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
@@ -517,7 +486,7 @@
                        .endRecord)
             field-value (gen/generate (s/gen (->avro-enum? enum-schema)))
             datum-map {"field" field-value}
-            actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.Schema" schema)
+            actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                   (.serialize (.serializer actual-serde) topic)
                                                   (.deserialize (.deserializer control-serde) topic))
             actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
@@ -543,7 +512,7 @@
                        .endRecord)
             field-value (gen/generate (s/gen (->avro-array? (->avro-enum? enum-schema))))
             datum-map {"field" field-value}
-            actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.Schema" schema)
+            actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                   (.serialize (.serializer actual-serde) topic)
                                                   (.deserialize (.deserializer control-serde) topic))
             actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
@@ -565,7 +534,7 @@
                        .endRecord)
             field-value (gen/generate (s/gen (->avro-map? (->avro-string?))))
             datum-map {"field" field-value}
-            actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.Schema" schema)
+            actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                   (.serialize (.serializer actual-serde) topic)
                                                   (.deserialize (.deserializer control-serde) topic))
             actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
@@ -597,7 +566,7 @@
                                                               (->avro-fixed? (-> (SchemaBuilder/builder) (.fixed "IPv6") (.namespace "com.slava.test") (.size 16)))
                                                               (->avro-string?)))))
             datum-map {"field" field-value}
-            actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.Schema" schema)
+            actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                   (.serialize (.serializer actual-serde) topic)
                                                   (.deserialize (.deserializer control-serde) topic))
             actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
@@ -618,7 +587,7 @@
                        .endRecord)
             field-value (gen/generate (s/gen (->avro-fixed? (-> (SchemaBuilder/builder) (.fixed "IPv6") (.size 16)))))
             datum-map {"field" field-value}
-            actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.Schema" schema)
+            actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                   (.serialize (.serializer actual-serde) topic)
                                                   (.deserialize (.deserializer control-serde) topic))
             actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)

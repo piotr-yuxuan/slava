@@ -1,11 +1,10 @@
 package com.slava;
 
 import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.avro.generic.GenericRecordBuilder;
 import org.apache.kafka.common.serialization.Serializer;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Map;
 
@@ -14,16 +13,17 @@ import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientExcept
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerDe;
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
-import io.confluent.kafka.serializers.KafkaAvroSerializerConfig;
 import io.confluent.kafka.serializers.subject.TopicNameStrategy;
 import io.confluent.kafka.serializers.subject.strategy.SubjectNameStrategy;
 
+import static com.slava.KafkaNativeAvroSerializerConfig.ORG_APACHE_AVRO_CONVERSION_STRATEGY_CONFIG;
+import static com.slava.KafkaNativeAvroSerializerConfig.ORG_APACHE_AVRO_SCHEMA_KEY_CONFIG;
+
 public class KafkaNativeAvroSerializer extends AbstractKafkaAvroSerializer implements Serializer<Map> {
-    private static final String NATIVE_AVRO_SCHEMA_KEY = "native.avro.schema.key";
-    private static final String DEFAULT_NATIVE_AVRO_SCHEMA_KEY = "org.apache.avro.Schema";
-    private Object nativeAvroSchemaKey = DEFAULT_NATIVE_AVRO_SCHEMA_KEY;
+    private Object nativeAvroSchemaKey;
     private boolean isKey;
     private KafkaAvroSerializer inner;
+    private ConversionStrategy conversionStrategy;
 
     /**
      * Constructor used by Kafka producer.
@@ -37,31 +37,32 @@ public class KafkaNativeAvroSerializer extends AbstractKafkaAvroSerializer imple
         inner = new KafkaAvroSerializer(client);
     }
 
+    private void configure(Map<String, ?> configs) {
+        configure(serializerConfig(configs));
+        nativeAvroSchemaKey = configs.get(ORG_APACHE_AVRO_SCHEMA_KEY_CONFIG);
+        try {
+            conversionStrategy = ((Class<ConversionStrategy>) Class.forName((String) configs.get(ORG_APACHE_AVRO_CONVERSION_STRATEGY_CONFIG))).getDeclaredConstructor().newInstance();
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
     public KafkaNativeAvroSerializer(SchemaRegistryClient client, Map<String, ?> configs) {
         schemaRegistry = client;
-        configure(serializerConfig(configs));
-        if (configs.containsKey(NATIVE_AVRO_SCHEMA_KEY)) {
-            nativeAvroSchemaKey = configs.get(NATIVE_AVRO_SCHEMA_KEY);
-        }
+        configure(configs);
         inner = new KafkaAvroSerializer(client, configs);
     }
 
     public KafkaNativeAvroSerializer(SchemaRegistryClient client, Map<String, ?> configs, KafkaAvroSerializer serializer) {
         schemaRegistry = client;
-        configure(serializerConfig(configs));
-        if (configs.containsKey(NATIVE_AVRO_SCHEMA_KEY)) {
-            nativeAvroSchemaKey = configs.get(NATIVE_AVRO_SCHEMA_KEY);
-        }
+        configure(configs);
         inner = serializer;
     }
 
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
         this.isKey = isKey;
-        configure(new KafkaAvroSerializerConfig(configs));
-        if (configs.containsKey(NATIVE_AVRO_SCHEMA_KEY)) {
-            nativeAvroSchemaKey = configs.get(NATIVE_AVRO_SCHEMA_KEY);
-        }
+        configure(configs);
         inner.configure(configs, isKey);
     }
 
@@ -72,32 +73,10 @@ public class KafkaNativeAvroSerializer extends AbstractKafkaAvroSerializer imple
         return isKey ? (SubjectNameStrategy) keySubjectNameStrategy : (SubjectNameStrategy) valueSubjectNameStrategy;
     }
 
-    /**
-     * In the general case we can't find the schema only from the topic because the
-     * {@link SchemaRegistryClient} subject naming strategy also depends on the schema.
-     * <p>
-     * However, the default strategy {@link TopicNameStrategy} doesn't depend on the schema. In this
-     * case, we could query the {@link SchemaRegistryClient} and retrieve the schema if we could
-     * access the strategy… which is a private field.
-     * <p>
-     * We can't use composition instead of inheritance because {@link Serializer#serialize} must
-     * return {@code bytes[]}.
-     *
-     * @param topic
-     * @param map
-     * @return
-     */
     @Override
     public byte[] serialize(String topic, Map map) {
-        Schema schema = getSchemaFromMap(map); // getSchema(topic, map);
-        GenericRecordBuilder builder = new GenericRecordBuilder(schema);
-        schema.getFields().forEach(field -> {
-            if (map.containsKey(field.name())) {
-                builder.set(field, map.get(field.name()));
-            }
-        });
-        GenericRecord record = builder.build();
-        return inner.serialize(topic, record);
+        Schema schema = getSchemaFromMap(map); // TODO getSchema(topic, map);
+        return inner.serialize(topic, conversionStrategy.toAvroType(schema, map));
     }
 
     @Override
@@ -131,7 +110,7 @@ public class KafkaNativeAvroSerializer extends AbstractKafkaAvroSerializer imple
     }
 
     private Schema getSchemaFromMap(Map map) {
-        // TODO also allow class reference
+        // TODO also allow class reference so you can use specificRecord classes.
         return (Schema) map.get(nativeAvroSchemaKey);
     }
 }
