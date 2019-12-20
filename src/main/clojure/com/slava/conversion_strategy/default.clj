@@ -28,24 +28,28 @@
   (->avro [_ data] data)
 
   Schema$MapSchema
-  (->native [schema data] (let [m! (HashMap.)]
-                            (doseq [[k v] data]
-                              (.put m! (str k) (->native (.getValueType schema) v)))
-                            (Collections/unmodifiableMap m!)))
+  (->native [schema data]
+    (let [m! (HashMap.)]
+      (doseq [[k v] data]
+        (.put m! (str k) (->native (.getValueType schema) v)))
+      (Collections/unmodifiableMap m!)))
   (->avro [_ data] data)
 
   Schema$ArraySchema
-  (->native [schema data] (let [l! (ArrayList.)]
-                            (doseq [v data]
-                              (.add l! (->native (.getElementType schema) v)))
-                            (Collections/unmodifiableList l!)))
+  (->native [schema data]
+    (let [l! (ArrayList.)]
+      (doseq [v data]
+        (.add l! (->native (.getElementType schema) v)))
+      (Collections/unmodifiableList l!)))
   (->avro [_ data] data)
 
   Schema$FixedSchema
-  (->native [schema data] (doto (ByteBuffer/allocate (.getFixedSize schema)) (.put (.bytes ^GenericFixed data)) (.rewind)))
-  (->avro [schema data] (if (instance? GenericData$Fixed data) ;; TODO make sure it's absolutely necessary, it's probably a smell
-                          data
-                          (GenericData$Fixed. schema (.array ^ByteBuffer data))))
+  (->native [schema data]
+    (doto (ByteBuffer/allocate (.getFixedSize schema)) (.put (.bytes ^GenericFixed data)) (.rewind)))
+  (->avro [schema data]
+    (if (instance? GenericData$Fixed data) ;; TODO make sure it's absolutely necessary, it's probably a smell
+      data
+      (GenericData$Fixed. schema (.array ^ByteBuffer data))))
 
   Schema$EnumSchema
   (->native [_ data] (str data))
