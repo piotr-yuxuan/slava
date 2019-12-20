@@ -1,4 +1,4 @@
-(ns com.slava.converter.clojure-converter-test
+(ns com.slava.conversion-strategy.default-converter-test
   "I prefer no abstraction than a bad abstraction: this explains the
   boilerplate code. On the bright side, you're likely to focus on some
   test and not to read this file from beginning to the end, so the
@@ -12,7 +12,7 @@
   (:require [clojure.test :refer :all]
             [clojure.spec.alpha :as s]
             [clojure.spec.gen.alpha :as gen]
-            [com.slava.converter.clojure-converter :refer [generic-data-record->map map->generic-data-record]]
+            [com.slava.conversion-strategy :refer [unbox-from-record box-to-record ->native ->avro]]
             [com.slava.specs :refer :all])
   (:import (org.apache.avro SchemaBuilder SchemaBuilder$RecordBuilder SchemaBuilder$FieldAssembler Schema AvroMissingFieldException SchemaBuilder$ArrayDefault SchemaBuilder$MapDefault SchemaBuilder$UnionAccumulator)
            (io.confluent.kafka.schemaregistry.client MockSchemaRegistryClient)
@@ -21,14 +21,14 @@
            (org.apache.avro.generic GenericRecordBuilder GenericData$StringType)
            (org.apache.kafka.common.errors SerializationException)
            (java.nio ByteBuffer)
-           (com.slava.converter ClojureConversionStrategy)))
+           (com.slava.conversion_strategy Default)))
 
 (deftest field-logic-test
   (let [topic "simple-string"
         client (MockSchemaRegistryClient.)
         serde-config {"schema.registry.url" "mock://"
                       "org.apache.avro.schema.key" "org.apache.avro.schema"
-                      "org.apache.avro.conversion.strategy" (.getName ClojureConversionStrategy)}
+                      "org.apache.avro.conversion.strategy" (.getName Default)}
         actual-serde (doto (NativeAvroSerde. client)
                        (.configure serde-config (boolean (not :key))))
         control-serde (doto (GenericAvroSerde. client)
@@ -50,9 +50,8 @@
                 control (->> (.build (GenericRecordBuilder. ^Schema schema))
                              (.serialize (.serializer control-serde) topic)
                              (.deserialize (.deserializer control-serde) topic))]
-            (is (= control actual-with-native-serialization))
-            (is (= (generic-data-record->map actual-with-native-serialization)
-                   actual-with-native-deserialization))))
+            (is (= control actual-with-native-serialization (->avro schema actual-with-native-deserialization)))
+            (is (= (->native schema control) (->native schema actual-with-native-serialization) actual-with-native-deserialization))))
         (testing "populated record"
           (let [datum-map {"someField" "some value"}
                 actual (->> (assoc datum-map "org.apache.avro.schema" schema)
@@ -81,15 +80,14 @@
                 actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                       (.serialize (.serializer actual-serde) topic)
                                                       (.deserialize (.deserializer control-serde) topic))
-                actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
+                actual-with-native-deserialization (->> (box-to-record schema datum-map)
                                                         (.serialize (.serializer control-serde) topic)
                                                         (.deserialize (.deserializer actual-serde) topic))
-                control (->> (map->generic-data-record schema datum-map)
+                control (->> (box-to-record schema datum-map)
                              (.serialize (.serializer control-serde) topic)
                              (.deserialize (.deserializer control-serde) topic))]
-            (is (= control actual-with-native-serialization))
-            (is (= (generic-data-record->map actual-with-native-serialization)
-                   actual-with-native-deserialization))))
+            (is (= control actual-with-native-serialization (->avro schema actual-with-native-deserialization)))
+            (is (= (->native schema control) (->native schema actual-with-native-serialization) actual-with-native-deserialization))))
         (testing "bad type"
           (try (let [datum-map {"noDefault" 1}]
                  (->> (assoc datum-map "org.apache.avro.schema" schema)
@@ -116,29 +114,27 @@
                 actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                       (.serialize (.serializer actual-serde) topic)
                                                       (.deserialize (.deserializer control-serde) topic))
-                actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
+                actual-with-native-deserialization (->> (box-to-record schema datum-map)
                                                         (.serialize (.serializer control-serde) topic)
                                                         (.deserialize (.deserializer actual-serde) topic))
-                control (->> (map->generic-data-record schema datum-map)
+                control (->> (box-to-record schema datum-map)
                              (.serialize (.serializer control-serde) topic)
                              (.deserialize (.deserializer control-serde) topic))]
-            (is (= control actual-with-native-serialization))
-            (is (= (generic-data-record->map actual-with-native-serialization)
-                   actual-with-native-deserialization))))
+            (is (= control actual-with-native-serialization (->avro schema actual-with-native-deserialization)))
+            (is (= (->native schema control) (->native schema actual-with-native-serialization) actual-with-native-deserialization))))
         (testing "field present"
           (let [datum-map {"stringDefault" "some value"}
                 actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                       (.serialize (.serializer actual-serde) topic)
                                                       (.deserialize (.deserializer control-serde) topic))
-                actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
+                actual-with-native-deserialization (->> (box-to-record schema datum-map)
                                                         (.serialize (.serializer control-serde) topic)
                                                         (.deserialize (.deserializer actual-serde) topic))
-                control (->> (map->generic-data-record schema datum-map)
+                control (->> (box-to-record schema datum-map)
                              (.serialize (.serializer control-serde) topic)
                              (.deserialize (.deserializer control-serde) topic))]
-            (is (= control actual-with-native-serialization))
-            (is (= (generic-data-record->map actual-with-native-serialization)
-                   actual-with-native-deserialization))))
+            (is (= control actual-with-native-serialization (->avro schema actual-with-native-deserialization)))
+            (is (= (->native schema control) (->native schema actual-with-native-serialization) actual-with-native-deserialization))))
         (testing "bad type"
           (try (let [datum-map {"stringDefault" 1}]
                  (->> (assoc datum-map "org.apache.avro.schema" schema)
@@ -172,28 +168,26 @@
                 actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                       (.serialize (.serializer actual-serde) topic)
                                                       (.deserialize (.deserializer control-serde) topic))
-                actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
+                actual-with-native-deserialization (->> (box-to-record schema datum-map)
                                                         (.serialize (.serializer control-serde) topic)
                                                         (.deserialize (.deserializer actual-serde) topic))
-                control (->> (map->generic-data-record schema datum-map)
+                control (->> (box-to-record schema datum-map)
                              (.serialize (.serializer control-serde) topic)
                              (.deserialize (.deserializer control-serde) topic))]
-            (is (= control actual-with-native-serialization))
-            (is (= (generic-data-record->map actual-with-native-serialization)
-                   actual-with-native-deserialization)))
+            (is (= control actual-with-native-serialization (->avro schema actual-with-native-deserialization)))
+            (is (= (->native schema control) (->native schema actual-with-native-serialization) actual-with-native-deserialization)))
           (let [datum-map {"stringNullableNoDefault" nil}
                 actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                       (.serialize (.serializer actual-serde) topic)
                                                       (.deserialize (.deserializer control-serde) topic))
-                actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
+                actual-with-native-deserialization (->> (box-to-record schema datum-map)
                                                         (.serialize (.serializer control-serde) topic)
                                                         (.deserialize (.deserializer actual-serde) topic))
-                control (->> (map->generic-data-record schema datum-map)
+                control (->> (box-to-record schema datum-map)
                              (.serialize (.serializer control-serde) topic)
                              (.deserialize (.deserializer control-serde) topic))]
-            (is (= control actual-with-native-serialization))
-            (is (= (generic-data-record->map actual-with-native-serialization)
-                   actual-with-native-deserialization))))
+            (is (= control actual-with-native-serialization (->avro schema actual-with-native-deserialization)))
+            (is (= (->native schema control) (->native schema actual-with-native-serialization) actual-with-native-deserialization))))
         (testing "bad type"
           (try (let [datum-map {"stringNullableNoDefault" 1}]
                  (->> (assoc datum-map "org.apache.avro.schema" schema)
@@ -214,15 +208,14 @@
               actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                     (.serialize (.serializer actual-serde) topic)
                                                     (.deserialize (.deserializer control-serde) topic))
-              actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
+              actual-with-native-deserialization (->> (box-to-record schema datum-map)
                                                       (.serialize (.serializer control-serde) topic)
                                                       (.deserialize (.deserializer actual-serde) topic))
-              control (->> (map->generic-data-record schema datum-map)
+              control (->> (box-to-record schema datum-map)
                            (.serialize (.serializer control-serde) topic)
                            (.deserialize (.deserializer control-serde) topic))]
-          (is (= control actual-with-native-serialization))
-          (is (= (generic-data-record->map actual-with-native-serialization)
-                 actual-with-native-deserialization)))))))
+          (is (= control actual-with-native-serialization (->avro schema actual-with-native-deserialization)))
+          (is (= (->native schema control) (->native schema actual-with-native-serialization) actual-with-native-deserialization)))))))
 
 (deftest primitive-types-test
   "https://avro.apache.org/docs/1.9.1/spec.html#schema_primitive"
@@ -230,7 +223,7 @@
         client (MockSchemaRegistryClient.)
         serde-config {"schema.registry.url" "mock://"
                       "org.apache.avro.schema.key" "org.apache.avro.schema"
-                      "org.apache.avro.conversion.strategy" (.getName ClojureConversionStrategy)}
+                      "org.apache.avro.conversion.strategy" (.getName Default)}
         actual-serde (doto (NativeAvroSerde. client)
                        (.configure serde-config (boolean (not :key))))
         control-serde (doto (GenericAvroSerde. client)
@@ -246,15 +239,14 @@
             actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                   (.serialize (.serializer actual-serde) topic)
                                                   (.deserialize (.deserializer control-serde) topic))
-            actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
+            actual-with-native-deserialization (->> (box-to-record schema datum-map)
                                                     (.serialize (.serializer control-serde) topic)
                                                     (.deserialize (.deserializer actual-serde) topic))
-            control (->> (map->generic-data-record schema datum-map)
+            control (->> (box-to-record schema datum-map)
                          (.serialize (.serializer control-serde) topic)
                          (.deserialize (.deserializer control-serde) topic))]
-        (is (= control actual-with-native-serialization))
-        (is (= (generic-data-record->map actual-with-native-serialization)
-               actual-with-native-deserialization))))
+        (is (= control actual-with-native-serialization (->avro schema actual-with-native-deserialization)))
+        (is (= (->native schema control) (->native schema actual-with-native-serialization) actual-with-native-deserialization))))
     (testing "avro boolean, a binary value"
       (let [schema (-> (SchemaBuilder/builder)
                        (.record "Boolean")
@@ -267,15 +259,14 @@
             actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                   (.serialize (.serializer actual-serde) topic)
                                                   (.deserialize (.deserializer control-serde) topic))
-            actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
+            actual-with-native-deserialization (->> (box-to-record schema datum-map)
                                                     (.serialize (.serializer control-serde) topic)
                                                     (.deserialize (.deserializer actual-serde) topic))
-            control (->> (map->generic-data-record schema datum-map)
+            control (->> (box-to-record schema datum-map)
                          (.serialize (.serializer control-serde) topic)
                          (.deserialize (.deserializer control-serde) topic))]
-        (is (= control actual-with-native-serialization))
-        (is (= (generic-data-record->map actual-with-native-serialization)
-               actual-with-native-deserialization))))
+        (is (= control actual-with-native-serialization (->avro schema actual-with-native-deserialization)))
+        (is (= (->native schema control) (->native schema actual-with-native-serialization) actual-with-native-deserialization))))
     (testing "avro int, 32-bit signed integer"
       (let [schema (-> (SchemaBuilder/builder)
                        (.record "Int")
@@ -288,16 +279,15 @@
             actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                   (.serialize (.serializer actual-serde) topic)
                                                   (.deserialize (.deserializer control-serde) topic))
-            actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
+            actual-with-native-deserialization (->> (box-to-record schema datum-map)
                                                     (.serialize (.serializer control-serde) topic)
                                                     (.deserialize (.deserializer actual-serde) topic))
-            control (->> (map->generic-data-record schema datum-map)
+            control (->> (box-to-record schema datum-map)
                          (.serialize (.serializer control-serde) topic)
                          (.deserialize (.deserializer control-serde) topic))]
-        (is (= control actual-with-native-serialization))
-        (is (= (generic-data-record->map actual-with-native-serialization)
-               actual-with-native-deserialization))
-        (is (= (type (get (generic-data-record->map actual-with-native-serialization) "field"))
+        (is (= control actual-with-native-serialization (->avro schema actual-with-native-deserialization)))
+        (is (= (->native schema control) (->native schema actual-with-native-serialization) actual-with-native-deserialization))
+        (is (= (type (get (unbox-from-record actual-with-native-serialization) "field"))
                (type (get actual-with-native-deserialization "field"))))))
     (testing "avro long, 64-bit signed integer"
       (let [schema (-> (SchemaBuilder/builder)
@@ -311,16 +301,15 @@
             actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                   (.serialize (.serializer actual-serde) topic)
                                                   (.deserialize (.deserializer control-serde) topic))
-            actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
+            actual-with-native-deserialization (->> (box-to-record schema datum-map)
                                                     (.serialize (.serializer control-serde) topic)
                                                     (.deserialize (.deserializer actual-serde) topic))
-            control (->> (map->generic-data-record schema datum-map)
+            control (->> (box-to-record schema datum-map)
                          (.serialize (.serializer control-serde) topic)
                          (.deserialize (.deserializer control-serde) topic))]
-        (is (= control actual-with-native-serialization))
-        (is (= (generic-data-record->map actual-with-native-serialization)
-               actual-with-native-deserialization))
-        (is (= (type (get (generic-data-record->map actual-with-native-serialization) "field"))
+        (is (= control actual-with-native-serialization (->avro schema actual-with-native-deserialization)))
+        (is (= (->native schema control) (->native schema actual-with-native-serialization) actual-with-native-deserialization))
+        (is (= (type (get (unbox-from-record actual-with-native-serialization) "field"))
                (type (get actual-with-native-deserialization "field"))))))
     (testing "avro float, single precision (32-bit) IEEE 754 floating-point number"
       (let [schema (-> (SchemaBuilder/builder)
@@ -334,16 +323,15 @@
             actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                   (.serialize (.serializer actual-serde) topic)
                                                   (.deserialize (.deserializer control-serde) topic))
-            actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
+            actual-with-native-deserialization (->> (box-to-record schema datum-map)
                                                     (.serialize (.serializer control-serde) topic)
                                                     (.deserialize (.deserializer actual-serde) topic))
-            control (->> (map->generic-data-record schema datum-map)
+            control (->> (box-to-record schema datum-map)
                          (.serialize (.serializer control-serde) topic)
                          (.deserialize (.deserializer control-serde) topic))]
-        (is (= control actual-with-native-serialization))
-        (is (= (generic-data-record->map actual-with-native-serialization)
-               actual-with-native-deserialization))
-        (is (= (type (get (generic-data-record->map actual-with-native-serialization) "field"))
+        (is (= control actual-with-native-serialization (->avro schema actual-with-native-deserialization)))
+        (is (= (->native schema control) (->native schema actual-with-native-serialization) actual-with-native-deserialization))
+        (is (= (type (get (unbox-from-record actual-with-native-serialization) "field"))
                (type (get actual-with-native-deserialization "field"))))))
     (testing "avro double, double precision (64-bit) IEEE 754 floating-point number"
       (let [schema (-> (SchemaBuilder/builder)
@@ -357,16 +345,15 @@
             actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                   (.serialize (.serializer actual-serde) topic)
                                                   (.deserialize (.deserializer control-serde) topic))
-            actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
+            actual-with-native-deserialization (->> (box-to-record schema datum-map)
                                                     (.serialize (.serializer control-serde) topic)
                                                     (.deserialize (.deserializer actual-serde) topic))
-            control (->> (map->generic-data-record schema datum-map)
+            control (->> (box-to-record schema datum-map)
                          (.serialize (.serializer control-serde) topic)
                          (.deserialize (.deserializer control-serde) topic))]
-        (is (= control actual-with-native-serialization))
-        (is (= (generic-data-record->map actual-with-native-serialization)
-               actual-with-native-deserialization))
-        (is (= (type (get (generic-data-record->map actual-with-native-serialization) "field"))
+        (is (= control actual-with-native-serialization (->avro schema actual-with-native-deserialization)))
+        (is (= (->native schema control) (->native schema actual-with-native-serialization) actual-with-native-deserialization))
+        (is (= (type (get (unbox-from-record actual-with-native-serialization) "field"))
                (type (get actual-with-native-deserialization "field"))))))
     (testing "avro bytes, sequence of 8-bit unsigned bytes"
       (let [schema (-> (SchemaBuilder/builder)
@@ -380,18 +367,17 @@
             actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                   (.serialize (.serializer actual-serde) topic)
                                                   (.deserialize (.deserializer control-serde) topic))
-            actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
+            actual-with-native-deserialization (->> (box-to-record schema datum-map)
                                                     (.serialize (.serializer control-serde) topic)
                                                     (.deserialize (.deserializer actual-serde) topic))
-            control (->> (map->generic-data-record schema datum-map)
+            control (->> (box-to-record schema datum-map)
                          (.serialize (.serializer control-serde) topic)
                          (.deserialize (.deserializer control-serde) topic))]
-        (is (= control actual-with-native-serialization))
-        (is (= (generic-data-record->map actual-with-native-serialization)
-               actual-with-native-deserialization))
-        (is (= (type (get (generic-data-record->map actual-with-native-serialization) "field"))
+        (is (= control actual-with-native-serialization (->avro schema actual-with-native-deserialization)))
+        (is (= (->native schema control) (->native schema actual-with-native-serialization) actual-with-native-deserialization))
+        (is (= (type (get (unbox-from-record actual-with-native-serialization) "field"))
                (type (get actual-with-native-deserialization "field"))))
-        (is (= (.asCharBuffer ^ByteBuffer (get (generic-data-record->map actual-with-native-serialization) "field"))
+        (is (= (.asCharBuffer ^ByteBuffer (get (unbox-from-record actual-with-native-serialization) "field"))
                (.asCharBuffer ^ByteBuffer (get actual-with-native-deserialization "field"))))))
     (testing "avro string, unicode character sequence"
       (let [schema (-> (SchemaBuilder/builder)
@@ -414,18 +400,14 @@
             actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                   (.serialize (.serializer actual-serde) topic)
                                                   (.deserialize (.deserializer control-serde) topic))
-            actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
+            actual-with-native-deserialization (->> (box-to-record schema datum-map)
                                                     (.serialize (.serializer control-serde) topic)
                                                     (.deserialize (.deserializer actual-serde) topic))
-            control (->> (map->generic-data-record schema datum-map)
+            control (->> (box-to-record schema datum-map)
                          (.serialize (.serializer control-serde) topic)
                          (.deserialize (.deserializer control-serde) topic))]
-        (is (= control actual-with-native-serialization))
-        (is (= actual-with-native-deserialization
-               {"stringTypeDefault" string-type-default
-                "stringTypeUtf8" string-type-utf8
-                "stringTypeCharSequence" string-type-char-sequence
-                "stringTypeString" string-type-string}))))))
+        (is (= control actual-with-native-serialization (->avro schema actual-with-native-deserialization)))
+        (is (= (->native schema control) (->native schema actual-with-native-serialization) actual-with-native-deserialization))))))
 
 (deftest complex-types-test
   "https://avro.apache.org/docs/current/spec.html#schema_complex"
@@ -433,7 +415,7 @@
         client (MockSchemaRegistryClient.)
         serde-config {"schema.registry.url" "mock://"
                       "org.apache.avro.schema.key" "org.apache.avro.schema"
-                      "org.apache.avro.conversion.strategy" (.getName ClojureConversionStrategy)}
+                      "org.apache.avro.conversion.strategy" (.getName Default)}
         actual-serde (doto (NativeAvroSerde. client)
                        (.configure serde-config (boolean (not :key))))
         control-serde (doto (GenericAvroSerde. client)
@@ -458,20 +440,25 @@
                        #_() #_() .endRecord
                        .noDefault
                        .endRecord)
-            field-value (.build (GenericRecordBuilder. ^Schema nested-schema))
+            field-value (box-to-record (-> (SchemaBuilder/builder)
+                                           (.record "Nested")
+                                           ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                                           ^SchemaBuilder$FieldAssembler .fields
+                                           (.name "nestedField") .type .stringType (.stringDefault "default value")
+                                           .endRecord)
+                                       {"nestedField" (gen/generate (s/gen (->avro-string?)))})
             datum-map {"field" field-value}
             actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                   (.serialize (.serializer actual-serde) topic)
                                                   (.deserialize (.deserializer control-serde) topic))
-            actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
+            actual-with-native-deserialization (->> (box-to-record schema datum-map)
                                                     (.serialize (.serializer control-serde) topic)
                                                     (.deserialize (.deserializer actual-serde) topic))
-            control (->> (map->generic-data-record schema datum-map)
+            control (->> (box-to-record schema datum-map)
                          (.serialize (.serializer control-serde) topic)
                          (.deserialize (.deserializer control-serde) topic))]
-        (is (= control actual-with-native-serialization))
-        (is (= (generic-data-record->map actual-with-native-serialization)
-               actual-with-native-deserialization))))
+        (is (= control actual-with-native-serialization (->avro schema actual-with-native-deserialization)))
+        (is (= (->native schema control) (->native schema actual-with-native-serialization) actual-with-native-deserialization))))
     (testing "avro enums"
       (let [enum-values ["SPADES" "HEARTS" "DIAMONDS" "CLUBS"]
             ;; Pragmatic. However it would be better to defined "Nested" schema only one.
@@ -489,15 +476,14 @@
             actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                   (.serialize (.serializer actual-serde) topic)
                                                   (.deserialize (.deserializer control-serde) topic))
-            actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
+            actual-with-native-deserialization (->> (box-to-record schema datum-map)
                                                     (.serialize (.serializer control-serde) topic)
                                                     (.deserialize (.deserializer actual-serde) topic))
-            control (->> (map->generic-data-record schema datum-map)
+            control (->> (box-to-record schema datum-map)
                          (.serialize (.serializer control-serde) topic)
                          (.deserialize (.deserializer control-serde) topic))]
-        (is (= control actual-with-native-serialization))
-        (is (= (generic-data-record->map actual-with-native-serialization)
-               actual-with-native-deserialization))))
+        (is (= control actual-with-native-serialization (->avro schema actual-with-native-deserialization)))
+        (is (= (->native schema control) (->native schema actual-with-native-serialization) actual-with-native-deserialization))))
     (testing "avro arrays"
       (let [;; Pragmatic. However it would be better to defined "Nested" schema only one.
             enum-schema (-> (SchemaBuilder/builder)
@@ -515,15 +501,14 @@
             actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                   (.serialize (.serializer actual-serde) topic)
                                                   (.deserialize (.deserializer control-serde) topic))
-            actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
+            actual-with-native-deserialization (->> (box-to-record schema datum-map)
                                                     (.serialize (.serializer control-serde) topic)
                                                     (.deserialize (.deserializer actual-serde) topic))
-            control (->> (map->generic-data-record schema datum-map)
+            control (->> (box-to-record schema datum-map)
                          (.serialize (.serializer control-serde) topic)
                          (.deserialize (.deserializer control-serde) topic))]
-        (is (= control actual-with-native-serialization))
-        (is (= (generic-data-record->map actual-with-native-serialization)
-               actual-with-native-deserialization))))
+        (is (= control actual-with-native-serialization (->avro schema actual-with-native-deserialization)))
+        (is (= (->native schema control) (->native schema actual-with-native-serialization) actual-with-native-deserialization))))
     (testing "avro maps"
       (let [schema (-> (SchemaBuilder/builder)
                        (.record "Map")
@@ -537,15 +522,14 @@
             actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                   (.serialize (.serializer actual-serde) topic)
                                                   (.deserialize (.deserializer control-serde) topic))
-            actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
+            actual-with-native-deserialization (->> (box-to-record schema datum-map)
                                                     (.serialize (.serializer control-serde) topic)
                                                     (.deserialize (.deserializer actual-serde) topic))
-            control (->> (map->generic-data-record schema datum-map)
+            control (->> (box-to-record schema datum-map)
                          (.serialize (.serializer control-serde) topic)
                          (.deserialize (.deserializer control-serde) topic))]
-        (is (= control actual-with-native-serialization))
-        (is (= (generic-data-record->map actual-with-native-serialization)
-               actual-with-native-deserialization))))
+        (is (= control actual-with-native-serialization (->avro schema actual-with-native-deserialization)))
+        (is (= (->native schema control) (->native schema actual-with-native-serialization) actual-with-native-deserialization))))
     (testing "avro union (in array)" ;; explore avro capabilities
       (let [schema (-> (SchemaBuilder/builder)
                        (.record "Union")
@@ -569,15 +553,14 @@
             actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                   (.serialize (.serializer actual-serde) topic)
                                                   (.deserialize (.deserializer control-serde) topic))
-            actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
+            actual-with-native-deserialization (->> (box-to-record schema datum-map)
                                                     (.serialize (.serializer control-serde) topic)
                                                     (.deserialize (.deserializer actual-serde) topic))
-            control (->> (map->generic-data-record schema datum-map)
+            control (->> (box-to-record schema datum-map)
                          (.serialize (.serializer control-serde) topic)
                          (.deserialize (.deserializer control-serde) topic))]
-        (is (= control actual-with-native-serialization))
-        (is (= (generic-data-record->map actual-with-native-serialization)
-               actual-with-native-deserialization))))
+        (is (= control actual-with-native-serialization (->avro schema actual-with-native-deserialization)))
+        (is (= (->native schema control) (->native schema actual-with-native-serialization) actual-with-native-deserialization))))
     (testing "avro fixed"
       (let [schema (-> (SchemaBuilder/builder)
                        (.record "Fixed")
@@ -590,12 +573,11 @@
             actual-with-native-serialization (->> (assoc datum-map "org.apache.avro.schema" schema)
                                                   (.serialize (.serializer actual-serde) topic)
                                                   (.deserialize (.deserializer control-serde) topic))
-            actual-with-native-deserialization (->> (map->generic-data-record schema datum-map)
+            actual-with-native-deserialization (->> (box-to-record schema datum-map)
                                                     (.serialize (.serializer control-serde) topic)
                                                     (.deserialize (.deserializer actual-serde) topic))
-            control (->> (map->generic-data-record schema datum-map)
+            control (->> (box-to-record schema datum-map)
                          (.serialize (.serializer control-serde) topic)
                          (.deserialize (.deserializer control-serde) topic))]
-        (is (= control actual-with-native-serialization))
-        (is (= (generic-data-record->map actual-with-native-serialization)
-               actual-with-native-deserialization))))))
+        (is (= control actual-with-native-serialization (->avro schema actual-with-native-deserialization)))
+        (is (= (->native schema control) (->native schema actual-with-native-serialization) actual-with-native-deserialization))))))
