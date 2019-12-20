@@ -1,4 +1,5 @@
-(ns com.slava.specs
+(ns com.slava.generic-specs
+  "Specification of datastructures used by generic avro schemas"
   (:require [clojure.spec.alpha :as s]
             [clojure.test.check.generators :as test.g])
   (:import (org.apache.avro Schema Schema$EnumSchema)
@@ -18,7 +19,7 @@
 
 (def avro-int?
   "Int: 32-bit signed two's complement integer"
-  int?)
+  (s/with-gen int? #(test.g/fmap int (s/gen int?))))
 
 (def avro-long?
   "Long: 64-bit signed integer"
@@ -68,7 +69,7 @@
                             byte-array)
                       (test.g/vector test.g/byte (.getFixedSize fixed-schema)))))))
 
-(def ->avro-bytes?
+(def to-avro-bytes?
   "Sequence of 8-bit unsigned bytes."
   (memoize
     (fn []
@@ -79,11 +80,11 @@
           #(test.g/fmap (comp (fn [^bytes b] (doto (ByteBuffer/allocate capacity) (.put b) .rewind)) byte-array)
                         (test.g/vector test.g/byte capacity)))))))
 
-(def ->avro-string?
+(def to-avro-string?
   "Sequence of unicode characters"
   (memoize
-    (fn ->avro-string?
-      ([] (->avro-string? GenericData$StringType/Utf8))
+    (fn to-avro-string?
+      ([] (to-avro-string? GenericData$StringType/Utf8))
       ([^GenericData$StringType stringType]
        (if (= GenericData$StringType/String stringType)
          string?
@@ -139,9 +140,9 @@
 (extend-protocol SchemaSpec
   Schema$StringSchema (schema-spec [schema]
                         (if-let [s (.getObjectProp schema "avro.java.string")]
-                          (->avro-string? (Enum/valueOf GenericData$StringType s))
-                          (->avro-string?)))
-  Schema$BytesSchema (schema-spec [_] (->avro-bytes?))
+                          (to-avro-string? (Enum/valueOf GenericData$StringType s))
+                          (to-avro-string?)))
+  Schema$BytesSchema (schema-spec [_] (to-avro-bytes?))
   Schema$IntSchema (schema-spec [_] avro-int?)
   Schema$LongSchema (schema-spec [_] avro-long?)
   Schema$FloatSchema (schema-spec [_] avro-float?)
