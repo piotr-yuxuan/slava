@@ -9,11 +9,11 @@
               :implements [com.slava.ConversionStrategy]
               :prefix "impl-"))
 
-(defprotocol DefaultStrategy
+(defprotocol JavaStrategy
   (to-java [^Schema schema data])
   (to-avro [^Schema schema data]))
 
-(extend-protocol DefaultStrategy
+(extend-protocol JavaStrategy
   Schema$RecordSchema
   (to-java [_ data]
     (let [m! (HashMap.)]
