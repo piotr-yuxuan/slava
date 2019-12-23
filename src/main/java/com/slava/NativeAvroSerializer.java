@@ -79,7 +79,7 @@ public class NativeAvroSerializer extends AbstractKafkaAvroSerializer implements
     @Override
     public byte[] serialize(String topic, Map map) {
         Schema schema = getSchemaFromMap(map); // TODO getSchema(topic, map);
-        return inner.serialize(topic, conversionStrategy.toAvroType(schema, map));
+        return inner.serialize(topic, conversionStrategy.toAvro(schema, map));
     }
 
     @Override

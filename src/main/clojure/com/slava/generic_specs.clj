@@ -6,8 +6,11 @@
            (org.apache.avro.generic GenericData$EnumSymbol GenericData$StringType)
            (org.apache.avro.util Utf8)
            (org.apache.avro.generic GenericData$StringType GenericData$Fixed GenericRecord)
-           (org.apache.avro Schema Schema$EnumSchema Schema$FixedSchema Schema$RecordSchema Schema$ArraySchema Schema$MapSchema Schema$StringSchema Schema$BytesSchema Schema$IntSchema Schema$LongSchema Schema$FloatSchema Schema$DoubleSchema Schema$BooleanSchema Schema$NullSchema Schema$Field SchemaBuilder$MapDefault SchemaBuilder SchemaBuilder$FieldAssembler SchemaBuilder$RecordBuilder)
-           (java.nio ByteBuffer)))
+           (org.apache.avro Schema Schema$EnumSchema Schema$FixedSchema Schema$RecordSchema Schema$ArraySchema Schema$MapSchema Schema$StringSchema Schema$BytesSchema Schema$IntSchema Schema$LongSchema Schema$FloatSchema Schema$DoubleSchema Schema$BooleanSchema Schema$NullSchema)
+           (java.nio ByteBuffer)
+           (java.time Instant LocalTime LocalDate)
+           (java.time.temporal ChronoField)
+           (java.util UUID)))
 
 (def avro-null?
   "null: no value"
@@ -113,13 +116,14 @@
         #(test.g/list (s/gen item-avro-type))))))
 
 (def ->avro-map?
-  "Avro array complex type"
+  "Avro array complex type. Uses a sorted map to preserve order."
   (memoize
     (fn [value-avro-type]
       (s/with-gen
         (s/map-of string? value-avro-type)
-        #(test.g/map (s/gen string?)
-                     (s/gen value-avro-type))))))
+        #(test.g/fmap (fn [m] (into (sorted-map) m))
+                      (test.g/map (s/gen string?)
+                                  (s/gen value-avro-type)))))))
 
 ;; spec-alpha2 would be much better, sorry for that.  Also, this
 ;; doesn't allow for memoization, which is to say there isn't a
@@ -164,3 +168,129 @@
                (every? (fn [field]
                          (s/valid? (schema-spec (.schema field)) (.get record (.name field))))
                        (.getFields schema)))))))
+
+(def avro-uuid?
+  "The uuid logical type represents a random generated universally
+  unique identifier (UUID).
+
+  A uuid logical type annotates an Avro string. The string has to
+  conform with RFC-4122"
+  (s/with-gen
+    #(instance? UUID %)
+    #(test.g/fmap (fn [_] (UUID/randomUUID)) ;; v4
+                  ;; cheat
+                  test.g/byte)))
+
+(defn round-to-order
+  "Round the nanosecond so that it represents a millisecond"
+  [magnitude number]
+  (let [most-precise-order (int (Math/pow 10 magnitude))]
+    (->> most-precise-order
+         (/ number)
+         double Math/round
+         (* most-precise-order)
+         (cast (type number)))))
+
+(def seconds-expressed-in-nanoseconds (partial round-to-order 9))
+(def millis-expressed-in-nanoseconds (partial round-to-order 6))
+(def micros-expressed-in-nanoseconds (partial round-to-order 3))
+
+(def avro-date?
+  "The date logical type represents a date within the calendar, with
+  no reference to a particular time zone or time of day.
+
+  A date logical type annotates an Avro int, where the int stores the
+  number of days from the unix epoch, 1 January 1970 (ISO calendar)."
+  (s/with-gen
+    #(instance? LocalDate %)
+    (fn []
+      (test.g/fmap
+        (fn [[^Integer year ^Integer month ^Integer day-of-month]] (LocalDate/of year month day-of-month))
+        (test.g/tuple (test.g/large-integer* {:min 1903 ;; Backward and forward https://en.wikipedia.org/wiki/Year_2038_problem
+                                              :max 2037})
+                      (test.g/large-integer* {:min (.getMinimum (.range ChronoField/MONTH_OF_YEAR))
+                                              :max (.getMaximum (.range ChronoField/MONTH_OF_YEAR))})
+                      (test.g/large-integer* {:min (.getMinimum (.range ChronoField/DAY_OF_MONTH))
+                                              :max (.getMaximum (.range ChronoField/DAY_OF_MONTH))}))))))
+
+(def avro-time-millis?
+  "The time-millis logical type represents a time of day, with no
+  reference to a particular calendar, time zone or date, with a
+  precision of one millisecond.
+
+  A time-millis logical type annotates an Avro int, where the int
+  stores the number of milliseconds after midnight, 00:00:00.000."
+  (s/with-gen
+    #(instance? LocalTime %)
+    (fn []
+      (test.g/fmap
+        (fn [[hour minute second nano-of-second]] (LocalTime/of hour minute second (millis-expressed-in-nanoseconds nano-of-second)))
+        (test.g/tuple (test.g/large-integer* {:min (.getMinimum (.range ChronoField/HOUR_OF_DAY))
+                                              :max (.getMaximum (.range ChronoField/HOUR_OF_DAY))})
+                      (test.g/large-integer* {:min (.getMinimum (.range ChronoField/MINUTE_OF_HOUR))
+                                              :max (.getMaximum (.range ChronoField/MINUTE_OF_HOUR))})
+                      (test.g/large-integer* {:min (.getMinimum (.range ChronoField/SECOND_OF_MINUTE))
+                                              :max (.getMaximum (.range ChronoField/SECOND_OF_MINUTE))})
+                      (test.g/large-integer* {:min (.getMinimum (.range ChronoField/NANO_OF_SECOND))
+                                              :max (.getMaximum (.range ChronoField/NANO_OF_SECOND))}))))))
+
+(def avro-time-micros?
+  "The time-micros logical type represents a time of day, with no
+  reference to a particular calendar, time zone or date, with a
+  precision of one microsecond.
+
+  A time-micros logical type annotates an Avro long, where the long
+  stores the number of microseconds after midnight, 00:00:00.000000."
+  (s/with-gen
+    #(instance? LocalTime %)
+    (fn []
+      (test.g/fmap
+        (fn [[hour minute second nano-of-second]] (LocalTime/of hour minute second (micros-expressed-in-nanoseconds nano-of-second)))
+        (test.g/tuple (test.g/large-integer* {:min (.getMinimum (.range ChronoField/HOUR_OF_DAY))
+                                              :max (.getMaximum (.range ChronoField/HOUR_OF_DAY))})
+                      (test.g/large-integer* {:min (.getMinimum (.range ChronoField/MINUTE_OF_HOUR))
+                                              :max (.getMaximum (.range ChronoField/MINUTE_OF_HOUR))})
+                      (test.g/large-integer* {:min (.getMinimum (.range ChronoField/SECOND_OF_MINUTE))
+                                              :max (.getMaximum (.range ChronoField/SECOND_OF_MINUTE))})
+                      (test.g/large-integer* {:min (.getMinimum (.range ChronoField/NANO_OF_SECOND))
+                                              :max (.getMaximum (.range ChronoField/NANO_OF_SECOND))}))))))
+
+(def avro-timestamp-millis?
+  "The timestamp-millis logical type represents an instant on the global
+  timeline, independent of a particular time zone or calendar, with a
+  precision of one millisecond.
+
+  A timestamp-millis logical type annotates an Avro long, where the
+  long stores the number of milliseconds from the unix epoch, 1
+  January 1970 00:00:00.000 UTC."
+  (s/with-gen
+    #(instance? Instant %)
+    (fn []
+      (test.g/fmap
+        (fn [[epochSecond nanoAdjustment]] (Instant/ofEpochSecond epochSecond (millis-expressed-in-nanoseconds nanoAdjustment)))
+        (test.g/tuple (test.g/large-integer* {:min (.getMinimum (.range ChronoField/INSTANT_SECONDS))
+                                              :max (.getMaximum (.range ChronoField/INSTANT_SECONDS))})
+                      (test.g/large-integer* {:min (.getMinimum (.range ChronoField/NANO_OF_SECOND))
+                                              :max (.getMaximum (.range ChronoField/NANO_OF_SECOND))}))))))
+
+(def avro-timestamp-micros?
+  "The timestamp-micros logical type represents an instant on the global
+  timeline, independent of a particular time zone or calendar, with a
+  precision of one microsecond.
+
+  A timestamp-micros logical type annotates an Avro long, where the
+  long stores the number of microseconds from the unix epoch, 1
+  January 1970 00:00:00.000000 UTC."
+  ;; Implementation notes: sadly
+  ;; java.time.Instant/MIN_SECOND != (.getMinimum (.range java.time.temporal.ChronoField/INSTANT_SECONDS))
+  ;; java.time.Instant/MAX_SECOND != (.getMaximum (.range java.time.temporal.ChronoField/INSTANT_SECONDS))
+  (s/with-gen
+    #(instance? Instant %)
+    (fn []
+      (test.g/fmap
+        (fn [[seconds-from-epoch nanosecond-of-second]]
+          (Instant/ofEpochSecond seconds-from-epoch (micros-expressed-in-nanoseconds nanosecond-of-second)))
+        (test.g/tuple (test.g/large-integer* {:min (.getEpochSecond Instant/MIN)
+                                              :max (.getEpochSecond Instant/MAX)})
+                      (test.g/large-integer* {:min (.getMinimum (.range ChronoField/NANO_OF_SECOND))
+                                              :max (.getMaximum (.range ChronoField/NANO_OF_SECOND))}))))))

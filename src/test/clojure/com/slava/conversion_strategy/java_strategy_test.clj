@@ -2,9 +2,9 @@
   (:require [clojure.test :refer :all]
             [clojure.spec.alpha :as s]
             [clojure.spec.gen.alpha :as gen]
-            [com.slava.conversion-strategy.java-strategy :refer [to-java to-avro]]
+            [com.slava.conversion-strategy.java-strategy :refer [from-avro to-avro]]
             [com.slava.generic-specs :refer :all])
-  (:import (org.apache.avro SchemaBuilder SchemaBuilder$RecordBuilder SchemaBuilder$FieldAssembler Schema SchemaBuilder$ArrayDefault SchemaBuilder$MapDefault SchemaBuilder$UnionAccumulator)
+  (:import (org.apache.avro SchemaBuilder SchemaBuilder$RecordBuilder SchemaBuilder$FieldAssembler Schema SchemaBuilder$ArrayDefault SchemaBuilder$MapDefault SchemaBuilder$UnionAccumulator LogicalTypes Schema$Type)
            (io.confluent.kafka.schemaregistry.client MockSchemaRegistryClient)
            (io.confluent.kafka.streams.serdes.avro GenericAvroSerde)
            (org.apache.avro.generic GenericRecordBuilder GenericData$StringType)
@@ -37,7 +37,7 @@
           data-record (.build (doto (GenericRecordBuilder. ^Schema schema)
                                 (.set "field" field-value)))]
       (is (= (to-avro schema data-map) data-record (generic-avro-serde-round-trip data-record)))
-      (is (= data-map (to-java schema data-record)))))
+      (is (= data-map (from-avro schema data-record)))))
   (testing "avro boolean, a binary value"
     (let [schema (-> (SchemaBuilder/builder)
                      (.record "Boolean")
@@ -50,7 +50,7 @@
           data-record (.build (doto (GenericRecordBuilder. ^Schema schema)
                                 (.set "field" field-value)))]
       (is (= (to-avro schema data-map) data-record (generic-avro-serde-round-trip data-record)))
-      (is (= data-map (to-java schema data-record)))))
+      (is (= data-map (from-avro schema data-record)))))
   (testing "avro int, 32-bit signed integer"
     (let [schema (-> (SchemaBuilder/builder)
                      (.record "Int")
@@ -63,9 +63,9 @@
           data-record (.build (doto (GenericRecordBuilder. ^Schema schema)
                                 (.set "field" field-value)))]
       (is (= (to-avro schema data-map) data-record (generic-avro-serde-round-trip data-record)))
-      (is (= data-map (to-java schema data-record)))
+      (is (= data-map (from-avro schema data-record)))
       (is (= (type (get data-map "field"))
-             (type (get (to-java schema data-record) "field"))))))
+             (type (get (from-avro schema data-record) "field"))))))
   (testing "avro long, 64-bit signed integer"
     (let [schema (-> (SchemaBuilder/builder)
                      (.record "Long")
@@ -78,9 +78,9 @@
           data-record (.build (doto (GenericRecordBuilder. ^Schema schema)
                                 (.set "field" field-value)))]
       (is (= (to-avro schema data-map) data-record (generic-avro-serde-round-trip data-record)))
-      (is (= data-map (to-java schema data-record)))
+      (is (= data-map (from-avro schema data-record)))
       (is (= (type (get data-map "field"))
-             (type (get (to-java schema data-record) "field"))))))
+             (type (get (from-avro schema data-record) "field"))))))
   (testing "avro float, single precision (32-bit) IEEE 754 floating-point number"
     (let [schema (-> (SchemaBuilder/builder)
                      (.record "Float")
@@ -93,9 +93,9 @@
           data-record (.build (doto (GenericRecordBuilder. ^Schema schema)
                                 (.set "field" field-value)))]
       (is (= (to-avro schema data-map) data-record (generic-avro-serde-round-trip data-record)))
-      (is (= data-map (to-java schema data-record)))
+      (is (= data-map (from-avro schema data-record)))
       (is (= (type (get data-map "field"))
-             (type (get (to-java schema data-record) "field"))))))
+             (type (get (from-avro schema data-record) "field"))))))
   (testing "avro double, double precision (64-bit) IEEE 754 floating-point number"
     (let [schema (-> (SchemaBuilder/builder)
                      (.record "Double")
@@ -108,9 +108,9 @@
           data-record (.build (doto (GenericRecordBuilder. ^Schema schema)
                                 (.set "field" field-value)))]
       (is (= (to-avro schema data-map) data-record (generic-avro-serde-round-trip data-record)))
-      (is (= data-map (to-java schema data-record)))
+      (is (= data-map (from-avro schema data-record)))
       (is (= (type (get data-map "field"))
-             (type (get (to-java schema data-record) "field"))))))
+             (type (get (from-avro schema data-record) "field"))))))
   (testing "avro bytes, sequence of 8-bit unsigned bytes"
     (let [schema (-> (SchemaBuilder/builder)
                      (.record "Bytes")
@@ -123,11 +123,11 @@
           data-record (.build (doto (GenericRecordBuilder. ^Schema schema)
                                 (.set "field" field-value)))]
       (is (= (to-avro schema data-map) data-record (generic-avro-serde-round-trip data-record)))
-      (is (= data-map (to-java schema data-record)))
+      (is (= data-map (from-avro schema data-record)))
       (is (= (type (get data-map "field"))
-             (type (get (to-java schema data-record) "field"))))
+             (type (get (from-avro schema data-record) "field"))))
       (is (= (.asCharBuffer ^ByteBuffer (get data-map "field"))
-             (.asCharBuffer ^ByteBuffer (get (to-java schema data-record) "field"))))))
+             (.asCharBuffer ^ByteBuffer (get (from-avro schema data-record) "field"))))))
   (testing "avro string, unicode character sequence"
     (let [utf-8-avro-name "_çœ_ɵθɤɣʃʄ_ˈʕ_cA_sعربيe_æAe_胡雨軒_Петр" ;; no emoji or diacritic in avro names
           utf-8-avro-string "_çœ_ɵθɤɣʃʄ_ˈʕ_cA_sعَرَبِيّ\u200Ee_æAe_胡雨軒_Петр👍🚀"
@@ -154,7 +154,7 @@
                                 (.set (str utf-8-avro-name "CharSequence") (str utf-8-avro-string string-type-char-sequence))
                                 (.set (str utf-8-avro-name "String") (str utf-8-avro-string string-type-string))))]
       (is (= (to-avro schema data-map) data-record (generic-avro-serde-round-trip data-record)))
-      (is (= data-map (to-java schema data-record))))))
+      (is (= data-map (from-avro schema data-record))))))
 
 (deftest complex-types-test
   "https://avro.apache.org/docs/current/spec.html#schema_complex"
@@ -184,7 +184,7 @@
                                 (.set "field" (.build (doto (GenericRecordBuilder. ^Schema nested-schema)
                                                         (.set "nestedField" nested-field-value))))))]
       (is (= (to-avro schema data-map) data-record (generic-avro-serde-round-trip data-record)))
-      (is (= data-map (to-java schema data-record)))))
+      (is (= data-map (from-avro schema data-record)))))
   (testing "avro enums"
     (let [;; Pragmatic. However it would be better to defined "Nested" schema only one.
           enum-schema (-> (SchemaBuilder/builder)
@@ -201,7 +201,7 @@
           data-record (.build (doto (GenericRecordBuilder. ^Schema schema)
                                 (.set "field" field-value)))]
       (is (= (to-avro schema data-map) data-record (generic-avro-serde-round-trip data-record)))
-      (is (= data-map (to-java schema data-record)))))
+      (is (= data-map (from-avro schema data-record)))))
   (testing "avro arrays"
     (let [;; Pragmatic. However it would be better to defined "Nested" schema only one.
           enum-schema (-> (SchemaBuilder/builder)
@@ -219,7 +219,7 @@
           data-record (.build (doto (GenericRecordBuilder. ^Schema schema)
                                 (.set "field" field-value)))]
       (is (= (to-avro schema data-map) data-record (generic-avro-serde-round-trip data-record)))
-      (is (= data-map (to-java schema data-record)))))
+      (is (= data-map (from-avro schema data-record)))))
   (testing "avro maps"
     (let [schema (-> (SchemaBuilder/builder)
                      (.record "Map")
@@ -235,10 +235,10 @@
       (testing "GenericAvroSerde doesn't preserve map order… meh…"
         (is (= (to-avro schema data-map) data-record))
         (comment (is (= data-record (generic-avro-serde-round-trip data-record))))
-        (is (= (to-java schema (to-avro schema data-map))
-               (to-java schema data-record)
-               (to-java schema (generic-avro-serde-round-trip data-record)))))
-      (is (= data-map (to-java schema data-record)))))
+        (is (= (from-avro schema (to-avro schema data-map))
+               (from-avro schema data-record)
+               (from-avro schema (generic-avro-serde-round-trip data-record)))))
+      (is (= data-map (from-avro schema data-record)))))
   (testing "avro union (in array)" ;; explore avro capabilities
     (let [schema (-> (SchemaBuilder/builder)
                      (.record "Union")
@@ -266,8 +266,7 @@
       (is (= (to-avro schema data-map) data-record (generic-avro-serde-round-trip data-record)))
       (comment
         ;; TODO FIXME I'm just getting lazy of tricky, stupid parametric bugs. Let's have fun and put it aside for later.
-        (is (= data-map (to-java schema data-record))))
-      (vector data-map (to-java schema data-record))))
+        (is (= data-map (from-avro schema data-record))))))
   (testing "avro fixed"
     (let [schema (-> (SchemaBuilder/builder)
                      (.record "Fixed")
@@ -276,8 +275,108 @@
                      (.name "field") .type (.fixed "IPv6") (.size 16) .noDefault
                      .endRecord)
           field-value (gen/generate (s/gen (->avro-fixed? (-> (SchemaBuilder/builder) (.fixed "IPv6") (.size 16)))))
-          data-map {"field" (to-java (-> (SchemaBuilder/builder) (.fixed "IPv6") (.size 16)) field-value)}
+          data-map {"field" (from-avro (-> (SchemaBuilder/builder) (.fixed "IPv6") (.size 16)) field-value)}
           data-record (.build (doto (GenericRecordBuilder. ^Schema schema)
                                 (.set "field" field-value)))]
       (is (= (to-avro schema data-map) data-record (generic-avro-serde-round-trip data-record)))
-      (is (= data-map (to-java schema data-record))))))
+      (is (= data-map (from-avro schema data-record))))))
+
+(deftest logical-types
+  #_(testing "decimal logical type")
+  (testing "uuid logical type"
+    (let [uuid-schema (-> (LogicalTypes/uuid) (.addToSchema (Schema/create Schema$Type/STRING)))
+          schema (-> (SchemaBuilder/builder)
+                     (.record "Date")
+                     ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                     ^SchemaBuilder$FieldAssembler .fields
+                     (.name "field") (.type uuid-schema) .noDefault
+                     .endRecord)
+          field-value (gen/generate (s/gen avro-uuid?))
+          data-map {"field" field-value}
+          data-record (.build (doto (GenericRecordBuilder. ^Schema schema)
+                                (.set "field" (to-avro uuid-schema field-value))))]
+      (is (= (to-avro schema data-map) data-record (generic-avro-serde-round-trip data-record)))
+      (is (= data-map (from-avro schema data-record)))
+      (is (= (type (get data-map "field"))
+             (type (get (from-avro schema data-record) "field"))))))
+  (testing "date logical type"
+    (let [date-schema (-> (LogicalTypes/date) (.addToSchema (Schema/create Schema$Type/INT)))
+          schema (-> (SchemaBuilder/builder)
+                     (.record "Date")
+                     ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                     ^SchemaBuilder$FieldAssembler .fields
+                     (.name "field") (.type date-schema) .noDefault
+                     .endRecord)
+          field-value (gen/generate (s/gen avro-date?))
+          data-map {"field" field-value}
+          data-record (.build (doto (GenericRecordBuilder. ^Schema schema)
+                                (.set "field" (to-avro date-schema field-value))))]
+      (is (= (to-avro schema data-map) data-record (generic-avro-serde-round-trip data-record)))
+      (is (= data-map (from-avro schema data-record)))
+      (is (= (type (get data-map "field"))
+             (type (get (from-avro schema data-record) "field"))))))
+  (testing "time-millis logical type"
+    (let [time-millis-schema (-> (LogicalTypes/timeMillis) (.addToSchema (Schema/create Schema$Type/INT)))
+          schema (-> (SchemaBuilder/builder)
+                     (.record "TimeMillis")
+                     ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                     ^SchemaBuilder$FieldAssembler .fields
+                     (.name "field") (.type time-millis-schema) .noDefault
+                     .endRecord)
+          field-value (gen/generate (s/gen avro-time-millis?))
+          data-map {"field" field-value}
+          data-record (.build (doto (GenericRecordBuilder. ^Schema schema)
+                                (.set "field" (to-avro time-millis-schema field-value))))]
+      (is (= (to-avro schema data-map) data-record (generic-avro-serde-round-trip data-record)))
+      (is (= data-map (from-avro schema data-record)))
+      (is (= (type (get data-map "field"))
+             (type (get (from-avro schema data-record) "field"))))))
+  (testing "time-micros logical type"
+    (let [time-micros-schema (-> (LogicalTypes/timeMicros) (.addToSchema (Schema/create Schema$Type/LONG)))
+          schema (-> (SchemaBuilder/builder)
+                     (.record "TimeMicros")
+                     ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                     ^SchemaBuilder$FieldAssembler .fields
+                     (.name "field") (.type time-micros-schema) .noDefault
+                     .endRecord)
+          field-value (gen/generate (s/gen avro-time-micros?))
+          data-map {"field" field-value}
+          data-record (.build (doto (GenericRecordBuilder. ^Schema schema)
+                                (.set "field" (to-avro time-micros-schema field-value))))]
+      (is (= (to-avro schema data-map) data-record (generic-avro-serde-round-trip data-record)))
+      (is (= data-map (from-avro schema data-record)))
+      (is (= (type (get data-map "field"))
+             (type (get (from-avro schema data-record) "field"))))))
+  (testing "timestamp-millis logical type"
+    (let [timestamp-millis-schema (-> (LogicalTypes/timestampMillis) (.addToSchema (Schema/create Schema$Type/LONG)))
+          schema (-> (SchemaBuilder/builder)
+                     (.record "TimestampMicros")
+                     ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                     ^SchemaBuilder$FieldAssembler .fields
+                     (.name "field") (.type timestamp-millis-schema) .noDefault
+                     .endRecord)
+          field-value (gen/generate (s/gen avro-timestamp-millis?))
+          data-map {"field" field-value}
+          data-record (.build (doto (GenericRecordBuilder. ^Schema schema)
+                                (.set "field" (to-avro timestamp-millis-schema field-value))))]
+      (is (= (to-avro schema data-map) data-record (generic-avro-serde-round-trip data-record)))
+      (is (= data-map (from-avro schema data-record)))
+      (is (= (type (get data-map "field"))
+             (type (get (from-avro schema data-record) "field"))))))
+  (testing "timestamp-micros logical type"
+    (let [timestamp-micros-schema (-> (LogicalTypes/timestampMicros) (.addToSchema (Schema/create Schema$Type/LONG)))
+          schema (-> (SchemaBuilder/builder)
+                     (.record "TimestampMicros")
+                     ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                     ^SchemaBuilder$FieldAssembler .fields
+                     (.name "field") (.type timestamp-micros-schema) .noDefault
+                     .endRecord)
+          field-value (gen/generate (s/gen avro-timestamp-micros?))
+          data-map {"field" field-value}
+          data-record (.build (doto (GenericRecordBuilder. ^Schema schema)
+                                (.set "field" (to-avro timestamp-micros-schema field-value))))]
+      (is (= (to-avro schema data-map) data-record (generic-avro-serde-round-trip data-record)))
+      (is (= data-map (from-avro schema data-record)))
+      (is (= (type (get data-map "field"))
+             (type (get (from-avro schema data-record) "field"))))))
+  #_(testing "duration logical type"))

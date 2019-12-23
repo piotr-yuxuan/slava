@@ -52,13 +52,13 @@ public class NativeAvroDeserializer extends AbstractKafkaAvroDeserializer implem
     @Override
     public Map deserialize(String topic, byte[] data) {
         GenericRecord record = (GenericRecord) deserialize(data);
-        return (Map) conversionStrategy.toConvertedType(record.getSchema(), record);
+        return (Map) conversionStrategy.fromAvro(record.getSchema(), record);
     }
 
     /**
      * Pass a reader schema to get an Avro projection
      */
     public Map deserialize(String s, byte[] bytes, Schema readerSchema) {
-        return (Map) conversionStrategy.toConvertedType(readerSchema, deserialize(bytes, readerSchema));
+        return (Map) conversionStrategy.fromAvro(readerSchema, deserialize(bytes, readerSchema));
     }
 }
