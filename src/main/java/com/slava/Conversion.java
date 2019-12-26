@@ -21,7 +21,7 @@ public interface Conversion {
     Object toAvro(Schema schema, Object data);
 
     interface Dispatch {
-        static String schemaName(Schema schema, Object object) {
+        static String schemaName(Schema schema, Object data) {
             return schema.getFullName();
         }
 
@@ -31,10 +31,10 @@ public interface Conversion {
          * to be a good citizen and play well with this stateful Avro library.
          *
          * @param schema
-         * @param object
+         * @param data
          * @return a dispatch value, if no {@link org.apache.avro.Conversion} is known for this logical type
          */
-        static String logicalType(Schema schema, Object object) {
+        static String logicalType(Schema schema, Object data) {
             LogicalType logicalType = schema.getLogicalType();
             if (logicalType == null) return null;
 

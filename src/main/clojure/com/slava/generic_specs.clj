@@ -8,7 +8,7 @@
            (org.apache.avro.generic GenericData$StringType GenericData$Fixed GenericRecord)
            (org.apache.avro Schema Schema$EnumSchema Schema$FixedSchema Schema$RecordSchema Schema$ArraySchema Schema$MapSchema Schema$StringSchema Schema$BytesSchema Schema$IntSchema Schema$LongSchema Schema$FloatSchema Schema$DoubleSchema Schema$BooleanSchema Schema$NullSchema)
            (java.nio ByteBuffer)
-           (java.time Instant LocalTime LocalDate)
+           (java.time Instant LocalTime LocalDate DateTimeException)
            (java.time.temporal ChronoField)
            (java.util UUID)))
 
@@ -231,7 +231,9 @@
     #(instance? LocalDate %)
     (fn []
       (test.g/fmap
-        (fn [[^Integer year ^Integer month ^Integer day-of-month]] (LocalDate/of year month day-of-month))
+        (fn [[^Integer year ^Integer month ^Integer day-of-month]]
+          (try (LocalDate/of year month day-of-month)
+               (catch DateTimeException _ nil)))
         (test.g/tuple (test.g/large-integer* {:min 1903 ;; Backward and forward https://en.wikipedia.org/wiki/Year_2038_problem
                                               :max 2037})
                       (test.g/large-integer* {:min (.getMinimum (.range ChronoField/MONTH_OF_YEAR))
