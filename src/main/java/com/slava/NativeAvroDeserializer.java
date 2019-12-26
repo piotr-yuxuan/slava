@@ -17,7 +17,7 @@ import static com.slava.NativeAvroSerdeConfig.ORG_APACHE_AVRO_CONVERSION_STRATEG
 
 public class NativeAvroDeserializer extends AbstractKafkaAvroDeserializer implements Deserializer<Map> {
 
-    private ConversionStrategy conversionStrategy;
+    private Conversion conversionStrategy;
 
     /**
      * Constructor used by Kafka consumer.
@@ -34,7 +34,7 @@ public class NativeAvroDeserializer extends AbstractKafkaAvroDeserializer implem
         configure(deserializerConfig(configs));
         NativeAvroSerdeConfig nativeConfig = new NativeAvroSerdeConfig(configs);
 
-        Class<ConversionStrategy> conversionStrategyClass = (Class<ConversionStrategy>) nativeConfig.getClass(ORG_APACHE_AVRO_CONVERSION_STRATEGY_CONFIG);
+        Class<Conversion> conversionStrategyClass = (Class<Conversion>) nativeConfig.getClass(ORG_APACHE_AVRO_CONVERSION_STRATEGY_CONFIG);
         try {
             conversionStrategy = conversionStrategyClass.getDeclaredConstructor().newInstance();
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {

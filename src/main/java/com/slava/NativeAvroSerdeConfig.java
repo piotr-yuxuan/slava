@@ -7,8 +7,8 @@ import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 
 public class NativeAvroSerdeConfig extends AbstractKafkaAvroSerDeConfig {
 
-    public static final String ORG_APACHE_AVRO_CONVERSION_STRATEGY_CONFIG = "org.apache.avro.conversion.strategy";
-    public static final String ORG_APACHE_AVRO_CONVERSION_STRATEGY_DEFAULT = "com.slava.conversion_strategy.JavaStrategy";
+    public static final String ORG_APACHE_AVRO_CONVERSION_STRATEGY_CONFIG = "com.slava.conversion.class";
+    public static final String ORG_APACHE_AVRO_CONVERSION_STRATEGY_DEFAULT = "com.slava.Conversion";
     public static final String ORG_APACHE_AVRO_CONVERSION_STRATEGY_DOC = "TODO";
 
     public static final String ORG_APACHE_AVRO_SCHEMA_KEY_CONFIG = "org.apache.avro.schema.key";

@@ -1,11 +1,10 @@
 package com.slava;
 
-import org.apache.avro.Conversion;
 import org.apache.avro.LogicalType;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 
-public interface ConversionStrategy {
+public interface Conversion {
 
     /**
      * @param schema of the data to be coerced
@@ -27,19 +26,19 @@ public interface ConversionStrategy {
         }
 
         /**
-         * Doesn't return any dispatch value if a {@link Conversion} has been found in
+         * Doesn't return any dispatch value if a {@link org.apache.avro.Conversion} has been found in
          * {@link GenericData::getConversionFor} for this logical type. This is intended as a way
          * to be a good citizen and play well with this stateful Avro library.
          *
          * @param schema
          * @param object
-         * @return a dispatch value, if no {@link Conversion} is known for this logical type
+         * @return a dispatch value, if no {@link org.apache.avro.Conversion} is known for this logical type
          */
         static String logicalType(Schema schema, Object object) {
             LogicalType logicalType = schema.getLogicalType();
             if (logicalType == null) return null;
 
-            Conversion conversion = GenericData.get().getConversionFor(logicalType);
+            org.apache.avro.Conversion conversion = GenericData.get().getConversionFor(logicalType);
             if (conversion == null) return logicalType.getName();
 
             return null;

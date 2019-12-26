@@ -1,8 +1,8 @@
-(ns com.slava.conversion-strategy.java-strategy-test
+(ns com.slava.conversion-native-test
   (:require [clojure.test :refer :all]
             [clojure.spec.alpha :as s]
             [clojure.spec.gen.alpha :as gen]
-            [com.slava.conversion-strategy.java-strategy :refer [from-avro to-avro duration-logical-type duration-schema]]
+            [com.slava.conversion-native :refer [from-avro to-avro duration-logical-type duration-schema]]
             [com.slava.generic-specs :refer :all])
   (:import (org.apache.avro SchemaBuilder SchemaBuilder$RecordBuilder SchemaBuilder$FieldAssembler Schema SchemaBuilder$ArrayDefault SchemaBuilder$MapDefault SchemaBuilder$UnionAccumulator LogicalTypes Schema$Type LogicalTypes$Decimal)
            (io.confluent.kafka.schemaregistry.client MockSchemaRegistryClient)

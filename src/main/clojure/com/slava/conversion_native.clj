@@ -1,29 +1,28 @@
-(ns com.slava.conversion-strategy.java-strategy
+(ns com.slava.conversion-native
   "TODO: bigger, very simple and detailed documentation.
-  TODO: make sure `strategy` is a suitable design pattern name.
 
   Dispatch on schema name: takes precedence on all other dispatches so
   that you can introduce this library in some new code without
   changing too much. After all, it's newcomer' job to get used to its
   surroundings."
   (:import (org.apache.avro Schema Schema$Type Schema$FixedSchema Schema$UnionSchema Schema$MapSchema Schema$ArraySchema Schema$EnumSchema Schema$RecordSchema Schema$Field Conversions$DecimalConversion Conversions$UUIDConversion Conversion LogicalType SchemaBuilder)
-           (com.slava ConversionStrategy$Dispatch)
+           (com.slava Conversion$Dispatch)
            (java.util Collections HashMap LinkedHashMap ArrayList)
            (org.apache.avro.generic GenericRecord GenericRecordBuilder GenericFixed GenericData$Fixed GenericData$EnumSymbol GenericData)
            (java.nio ByteBuffer)
            (org.apache.avro.data TimeConversions$DateConversion TimeConversions$TimeMicrosConversion TimeConversions$TimeMillisConversion TimeConversions$TimestampMicrosConversion TimeConversions$TimestampMillisConversion)
            (java.time Period))
-  (:gen-class :name com.slava.conversion_strategy.JavaStrategy
-              :implements [com.slava.ConversionStrategy]
+  (:gen-class :name com.slava.ConversionNative
+              :implements [com.slava.Conversion]
               :prefix "impl-"))
 
-(defmulti from-avro-schema-type (fn [^Schema schema data] (ConversionStrategy$Dispatch/schemaType schema data)))
-(defmulti from-avro-logical-type (fn [^Schema schema data] (ConversionStrategy$Dispatch/logicalType schema data)))
-(defmulti from-avro-schema-name (fn [^Schema schema data] (ConversionStrategy$Dispatch/schemaName schema data)))
+(defmulti from-avro-schema-type (fn [^Schema schema data] (Conversion$Dispatch/schemaType schema data)))
+(defmulti from-avro-logical-type (fn [^Schema schema data] (Conversion$Dispatch/logicalType schema data)))
+(defmulti from-avro-schema-name (fn [^Schema schema data] (Conversion$Dispatch/schemaName schema data)))
 
-(defmulti to-avro-schema-type (fn [^Schema schema data] (ConversionStrategy$Dispatch/schemaType schema data)))
-(defmulti to-avro-logical-type (fn [^Schema schema data] (ConversionStrategy$Dispatch/logicalType schema data)))
-(defmulti to-avro-schema-name (fn [^Schema schema data] (ConversionStrategy$Dispatch/schemaName schema data)))
+(defmulti to-avro-schema-type (fn [^Schema schema data] (Conversion$Dispatch/schemaType schema data)))
+(defmulti to-avro-logical-type (fn [^Schema schema data] (Conversion$Dispatch/logicalType schema data)))
+(defmulti to-avro-schema-name (fn [^Schema schema data] (Conversion$Dispatch/schemaName schema data)))
 
 (defmethod from-avro-schema-type :default [_ data] nil)
 (defmethod from-avro-logical-type :default [_ data] nil)
@@ -62,7 +61,8 @@
 (defmethod from-avro-schema-type Schema$Type/ENUM [^Schema$EnumSchema schema data]
   (str data))
 (defmethod to-avro-schema-type Schema$Type/ENUM [^Schema$EnumSchema schema data]
-  (GenericData$EnumSymbol. schema data))
+  ;; This will raise if no Enum is present
+  (Enum/valueOf (Class/forName (.getFullName schema)) (str data)))
 
 (defmethod from-avro-schema-type Schema$Type/ARRAY [^Schema$ArraySchema schema data]
   (let [l! (ArrayList.)]

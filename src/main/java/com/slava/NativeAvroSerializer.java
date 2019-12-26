@@ -23,7 +23,7 @@ public class NativeAvroSerializer extends AbstractKafkaAvroSerializer implements
     private Object nativeAvroSchemaKey;
     private boolean isKey;
     private KafkaAvroSerializer inner;
-    private ConversionStrategy conversionStrategy;
+    private Conversion conversionStrategy;
 
     /**
      * Constructor used by Kafka producer.
@@ -42,7 +42,7 @@ public class NativeAvroSerializer extends AbstractKafkaAvroSerializer implements
         NativeAvroSerdeConfig nativeConfig = new NativeAvroSerdeConfig(configs);
         nativeAvroSchemaKey = nativeConfig.getString(ORG_APACHE_AVRO_SCHEMA_KEY_CONFIG);
 
-        Class<ConversionStrategy> conversionStrategyClass = (Class<ConversionStrategy>) nativeConfig.getClass(ORG_APACHE_AVRO_CONVERSION_STRATEGY_CONFIG);
+        Class<Conversion> conversionStrategyClass = (Class<Conversion>) nativeConfig.getClass(ORG_APACHE_AVRO_CONVERSION_STRATEGY_CONFIG);
         try {
             conversionStrategy = conversionStrategyClass.getDeclaredConstructor().newInstance();
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
