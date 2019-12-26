@@ -1,6 +1,6 @@
 (ns com.slava.conversion-strategy.java-strategy
   "TODO: bigger, very simple and detailed documentation.
-  TODO: make sure `factory` is a suitable design pattern name.
+  TODO: make sure `strategy` is a suitable design pattern name.
 
   Dispatch on schema name: takes precedence on all other dispatches so
   that you can introduce this library in some new code without
