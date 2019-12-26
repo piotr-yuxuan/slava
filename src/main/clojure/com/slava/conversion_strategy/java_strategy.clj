@@ -1,13 +1,18 @@
 (ns com.slava.conversion-strategy.java-strategy
-  "TODO: bigger, very simple and detailed documentation."
-  (:require [clojure.spec.alpha :as s]
-            [com.slava.generic-specs :refer [schema-spec seconds-expressed-in-nanoseconds micros-expressed-in-nanoseconds]])
-  (:import (org.apache.avro Schema Schema$Type Schema$BooleanSchema Schema$DoubleSchema Schema$FloatSchema Schema$LongSchema Schema$IntSchema Schema$BytesSchema Schema$StringSchema Schema$FixedSchema Schema$UnionSchema Schema$MapSchema Schema$ArraySchema Schema$EnumSchema Schema$RecordSchema Schema$NullSchema Schema$Field LogicalType LogicalTypes$Decimal)
+  "TODO: bigger, very simple and detailed documentation.
+  TODO: make sure `factory` is a suitable design pattern name.
+
+  Dispatch on schema name: takes precedence on all other dispatches so
+  that you can introduce this library in some new code without
+  changing too much. After all, it's newcomer' job to get used to its
+  surroundings."
+  (:import (org.apache.avro Schema Schema$Type Schema$FixedSchema Schema$UnionSchema Schema$MapSchema Schema$ArraySchema Schema$EnumSchema Schema$RecordSchema Schema$Field Conversions$DecimalConversion Conversions$UUIDConversion Conversion LogicalType SchemaBuilder)
            (com.slava ConversionStrategy$Dispatch)
-           (java.util Collections HashMap LinkedHashMap ArrayList UUID)
-           (org.apache.avro.generic GenericRecord GenericRecordBuilder GenericFixed GenericData$Fixed GenericData$EnumSymbol)
+           (java.util Collections HashMap LinkedHashMap ArrayList)
+           (org.apache.avro.generic GenericRecord GenericRecordBuilder GenericFixed GenericData$Fixed GenericData$EnumSymbol GenericData)
            (java.nio ByteBuffer)
-           (java.time LocalDate LocalTime Instant))
+           (org.apache.avro.data TimeConversions$DateConversion TimeConversions$TimeMicrosConversion TimeConversions$TimeMillisConversion TimeConversions$TimestampMicrosConversion TimeConversions$TimestampMillisConversion)
+           (java.time Period))
   (:gen-class :name com.slava.conversion_strategy.JavaStrategy
               :implements [com.slava.ConversionStrategy]
               :prefix "impl-"))
@@ -64,82 +69,72 @@
     (doseq [v data]
       (.add l! (from-avro (.getElementType schema) v)))
     (Collections/unmodifiableList l!)))
-(defmethod to-avro-schema-type Schema$Type/ARRAY [^Schema$ArraySchema schema data] data)
 
 (defmethod from-avro-schema-type Schema$Type/MAP [^Schema$MapSchema schema data]
   (let [m! (LinkedHashMap.)]
     (doseq [[k v] data]
       (.put m! (str k) (from-avro (.getValueType schema) v)))
     (Collections/unmodifiableMap m!)))
-(defmethod to-avro-schema-type Schema$Type/MAP [^Schema$MapSchema schema data] data)
 
 (defmethod from-avro-schema-type Schema$Type/UNION [^Schema$UnionSchema schema data]
-  (let [data-schema (some (fn [inner-schema]
-                            (when (s/valid? (schema-spec inner-schema) data)
-                              inner-schema))
-                          (.getTypes schema))]
-    (from-avro data-schema data)))
-(defmethod to-avro-schema-type Schema$Type/UNION [^Schema$UnionSchema schema data] data)
+  (from-avro (nth (.getTypes schema) (.resolveUnion (GenericData/get) schema data)) data))
+(defmethod to-avro-schema-type Schema$Type/UNION [^Schema$UnionSchema schema data]
+  (to-avro (nth (.getTypes schema) (.resolveUnion (GenericData/get) schema data)) data))
 
 (defmethod from-avro-schema-type Schema$Type/FIXED [^Schema$FixedSchema schema data]
   (doto (ByteBuffer/allocate (.getFixedSize schema)) (.put (.bytes ^GenericFixed data)) (.rewind)))
 (defmethod to-avro-schema-type Schema$Type/FIXED [^Schema$FixedSchema schema data]
   (GenericData$Fixed. schema (.array ^ByteBuffer data)))
 
-(defmethod from-avro-schema-type Schema$Type/STRING [^Schema$StringSchema schema data] (str data))
-(defmethod to-avro-schema-type Schema$Type/STRING [^Schema$StringSchema schema data] data)
-
-(defmethod from-avro-schema-type Schema$Type/BYTES [^Schema$BytesSchema schema data] data)
-(defmethod to-avro-schema-type Schema$Type/BYTES [^Schema$BytesSchema schema data] data)
-
-(defmethod from-avro-schema-type Schema$Type/INT [^Schema$IntSchema schema data] data)
-(defmethod to-avro-schema-type Schema$Type/INT [^Schema$IntSchema schema data] data)
-
-(defmethod from-avro-schema-type Schema$Type/LONG [^Schema$LongSchema schema data] data)
-(defmethod to-avro-schema-type Schema$Type/LONG [^Schema$LongSchema schema data] data)
-
-(defmethod from-avro-schema-type Schema$Type/FLOAT [^Schema$FloatSchema schema data] data)
-(defmethod to-avro-schema-type Schema$Type/FLOAT [^Schema$FloatSchema schema data] data)
-
-(defmethod from-avro-schema-type Schema$Type/DOUBLE [^Schema$DoubleSchema schema data] data)
-(defmethod to-avro-schema-type Schema$Type/DOUBLE [^Schema$DoubleSchema schema data] data)
-
-(defmethod from-avro-schema-type Schema$Type/BOOLEAN [^Schema$BooleanSchema schema data] data)
-(defmethod to-avro-schema-type Schema$Type/BOOLEAN [^Schema$BooleanSchema schema data] data)
-
-(defmethod from-avro-schema-type Schema$Type/NULL [^Schema$NullSchema schema data] data)
-(defmethod to-avro-schema-type Schema$Type/NULL [^Schema$NullSchema schema data] data)
-
 ;;;
 ;;; Implementation of dispatch on logical types
 ;;;
 
-(defmethod from-avro-logical-type "decimal" [schema data] data)
-(defmethod to-avro-logical-type "decimal" [schema data] data)
+(def duration-logical-type (LogicalType. "duration"))
+(def duration-schema
+  (.addToSchema duration-logical-type
+                (-> (SchemaBuilder/builder)
+                    (.fixed "duration")
+                    (.size 12))))
 
-(defmethod from-avro-logical-type "uuid" [schema ^String data] (UUID/fromString data))
-(defmethod to-avro-logical-type "uuid" [schema ^UUID data] (str data))
+(defn duration-conversion []
+  "Not implemented in upstream avro Conversions." ;; TODO
+  (proxy [Conversion] []
+    (getConvertedType [] Period)
+    (getRecommendedSchema [] duration-schema)
+    (getLogicalTypeName [] (.getName duration-logical-type))
+    (fromFixed [value schema type] value)
+    (toFixed [value schema type] value)))
 
-(defmethod from-avro-logical-type "date" [schema ^Integer days-from-epoch] (LocalDate/ofEpochDay days-from-epoch))
-(defmethod to-avro-logical-type "date" [schema ^LocalDate data] (int (.toEpochDay data)))
+(def logical-type-conversions
+  #{{:logical-type-name "decimal" :conversion (delay (Conversions$DecimalConversion.))}
+    {:logical-type-name "uuid" :conversion (delay (Conversions$UUIDConversion.))}
+    {:logical-type-name "date" :conversion (delay (TimeConversions$DateConversion.))}
+    {:logical-type-name "time-millis" :conversion (delay (TimeConversions$TimeMillisConversion.))}
+    {:logical-type-name "time-micros" :conversion (delay (TimeConversions$TimeMicrosConversion.))}
+    {:logical-type-name "timestamp-millis" :conversion (delay (TimeConversions$TimestampMillisConversion.))}
+    {:logical-type-name "timestamp-micros" :conversion (delay (TimeConversions$TimestampMicrosConversion.))}
+    {:logical-type-name "duration" :conversion (delay (duration-conversion))}})
 
-(defmethod from-avro-logical-type "time-millis" [schema ^Integer milliseconds-after-midnight] (LocalTime/ofNanoOfDay (* 1e6 milliseconds-after-midnight)))
-(defmethod to-avro-logical-type "time-millis" [schema ^LocalTime local-time] (int (/ (.toNanoOfDay local-time) 1e6)))
+;; I've got mixed feelings about this macro. On one hand it allows
+;; explicit case dispatch values on Enum, which is good. On the other
+;; hand, the best macro is the one which doesn't get written.
+(defmacro logical-type-implementation!
+  [logical-type-conversions]
+  `(doseq [{:keys [~'logical-type-name ~'conversion]} logical-type-conversions]
+     (defmethod from-avro-logical-type ~'logical-type-name ~'[schema data]
+       (case (.ordinal (.getType ~'schema))
+         ~(.ordinal Schema$Type/FIXED) (.fromFixed @~'conversion ~'data ~'schema (.getLogicalType ~'schema))
+         ~(.ordinal Schema$Type/STRING) (.fromCharSequence @~'conversion ~'data ~'schema (.getLogicalType ~'schema))
+         ~(.ordinal Schema$Type/BYTES) (.fromBytes @~'conversion ~'data ~'schema (.getLogicalType ~'schema))
+         ~(.ordinal Schema$Type/INT) (.fromInt @~'conversion ~'data ~'schema (.getLogicalType ~'schema))
+         ~(.ordinal Schema$Type/LONG) (.fromLong @~'conversion ~'data ~'schema (.getLogicalType ~'schema))))
+     (defmethod to-avro-logical-type ~'logical-type-name ~'[schema data]
+       (case (.ordinal (.getType ~'schema))
+         ~(.ordinal Schema$Type/FIXED) (.toFixed @~'conversion ~'data ~'schema (.getLogicalType ~'schema))
+         ~(.ordinal Schema$Type/STRING) (.toCharSequence @~'conversion ~'data ~'schema (.getLogicalType ~'schema))
+         ~(.ordinal Schema$Type/BYTES) (.toBytes @~'conversion ~'data ~'schema (.getLogicalType ~'schema))
+         ~(.ordinal Schema$Type/INT) (.toInt @~'conversion ~'data ~'schema (.getLogicalType ~'schema))
+         ~(.ordinal Schema$Type/LONG) (.toLong @~'conversion ~'data ~'schema (.getLogicalType ~'schema))))))
 
-(defmethod from-avro-logical-type "time-micros" [schema ^Long data] (LocalTime/ofNanoOfDay (* 1e3 data)))
-(defmethod to-avro-logical-type "time-micros" [schema ^LocalTime data] (long (/ (.toNanoOfDay data) 1e3)))
-
-(defmethod from-avro-logical-type "timestamp-millis" [schema ^Long milliseconds-from-epoch] (Instant/ofEpochMilli milliseconds-from-epoch))
-(defmethod to-avro-logical-type "timestamp-millis" [schema ^Instant instant] (long (.toEpochMilli instant)))
-
-(defmethod from-avro-logical-type "timestamp-micros" [schema ^Long microseconds-from-epoch]
-  (let [nanoseconds-from-epoch (long (* 1e3 microseconds-from-epoch))
-        seconds-from-epoch (seconds-expressed-in-nanoseconds nanoseconds-from-epoch)
-        nanosecond-of-second (micros-expressed-in-nanoseconds (- nanoseconds-from-epoch seconds-from-epoch))]
-    (Instant/ofEpochSecond (/ seconds-from-epoch 1e9) nanosecond-of-second)))
-(defmethod to-avro-logical-type "timestamp-micros" [schema ^Instant instant]
-  (long (+ (* 1e6 (.getEpochSecond instant))
-           (Math/round (double (/ (.getNano instant) 1e3))))))
-
-(defmethod from-avro-logical-type "duration" [^Schema$FixedSchema schema data] data)
-(defmethod to-avro-logical-type "duration" [schema data] data)
+(logical-type-implementation! logical-type-conversions)

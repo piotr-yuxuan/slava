@@ -195,6 +195,32 @@
 (def millis-expressed-in-nanoseconds (partial round-to-order 6))
 (def micros-expressed-in-nanoseconds (partial round-to-order 3))
 
+(defn ->avro-decimal?
+  "The decimal logical type represents an arbitrary-precision signed
+  decimal number of the form unscaled × 10-scale.
+
+  A decimal logical type annotates Avro bytes or fixed types. The byte
+  array must contain the two's-complement representation of the
+  unscaled integer value in big-endian byte order. The scale is fixed,
+  and is specified using an attribute.
+
+  The following attributes are supported:
+
+  - scale, a JSON integer representing the scale (optional). If not
+    specified the scale is 0.
+  - precision, a JSON integer representing the (maximum) precision of
+    decimals stored in this type (required)."
+  [precision scale]
+  (assert (<= scale precision) (format "Invalid decimal scale: %s (greater than precision: %s)" scale precision))
+  (s/with-gen
+    #(instance? BigDecimal %)
+    (fn []
+      (test.g/fmap (fn [[integer-part decimal-part]] (BigDecimal/valueOf (+ (* integer-part (Math/pow 10 (- precision scale))) decimal-part) scale))
+                   (test.g/tuple (test.g/large-integer* {:min 0
+                                                         :max (dec (Math/pow 10 (- precision scale)))})
+                                 (test.g/large-integer* {:min 0
+                                                         :max (dec (Math/pow 10 scale))}))))))
+
 (def avro-date?
   "The date logical type represents a date within the calendar, with
   no reference to a particular time zone or time of day.
