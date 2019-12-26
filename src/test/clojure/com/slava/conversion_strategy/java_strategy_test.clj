@@ -286,7 +286,7 @@
 
 (deftest logical-types
   (testing "decimal logical type"
-    (let [precision (inc (rand-int 7)) ;; [1..8] inclusive
+    (let [precision (inc (rand-int 8)) ;; [1..8] inclusive
           scale (rand-int precision)
           decimal-schema (-> (LogicalTypes/decimal precision scale)
                              (.addToSchema (Schema/create Schema$Type/BYTES)))
