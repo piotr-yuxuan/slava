@@ -35,8 +35,8 @@ public class NativeAvroSerde implements Serde<Map> {
     }
 
     public void configure(Map<String, ?> serdeConfig, boolean isSerdeForRecordKeys) {
-        this.inner.serializer().configure(serdeConfig, isSerdeForRecordKeys);
-        this.inner.deserializer().configure(serdeConfig, isSerdeForRecordKeys);
+        this.inner.configure(serdeConfig, isSerdeForRecordKeys);
+        this.inner.configure(serdeConfig, isSerdeForRecordKeys);
     }
 
     public void close() {

@@ -27,11 +27,12 @@
   ([m] [[] (atom m)]))
 
 (defn config->map [^NativeAvroSerdeConfig config]
-  (assoc {}
-    :schema-key (keyword (.getString config NativeAvroSerdeConfig/ORG_APACHE_AVRO_SCHEMA_KEY_CONFIG))
-    :field-name (keyword (.getString config NativeAvroSerdeConfig/COM_SLAVA_FIELD_NAME_CONVERSION_CONFIG))
-    :map-key (keyword (.getString config NativeAvroSerdeConfig/COM_SLAVA_MAP_KEY_CONVERSION_CONFIG))
-    :enum-type (keyword (.getString config NativeAvroSerdeConfig/COM_SLAVA_ENUM_CONVERSION_CONFIG))))
+  (merge
+    {:field-name (keyword (.getString config NativeAvroSerdeConfig/COM_SLAVA_FIELD_NAME_CONVERSION_CONFIG))
+     :map-key (keyword (.getString config NativeAvroSerdeConfig/COM_SLAVA_MAP_KEY_CONVERSION_CONFIG))
+     :enum-type (keyword (.getString config NativeAvroSerdeConfig/COM_SLAVA_ENUM_CONVERSION_CONFIG))}
+    (when (.getBoolean config NativeAvroSerdeConfig/COM_SLAVA_INCLUDE_SCHEMA_IN_MAP_CONFIG)
+      {:schema-key (keyword (.getString config NativeAvroSerdeConfig/ORG_APACHE_AVRO_SCHEMA_KEY_CONFIG))})))
 
 (defn impl-configure
   [this ^NativeAvroSerdeConfig config]
@@ -102,7 +103,7 @@
 (defn impl-toAvro [this schema object] (to-avro this schema object))
 
 (defmulti from-avro-field-name
-  ""
+  "" ;; TODO remove this
   {:arglists '([^ConversionNative this ^Schema$RecordSchema schema ^Schema$Field field])}
   (fn [^ConversionNative this ^Schema$RecordSchema schema ^Schema$Field field] (:field-name @(.config this))))
 (defmethod from-avro-field-name :default [this schema field] (.name field))
@@ -140,33 +141,35 @@
 ;;;
 
 (defmethod from-avro-schema-type Schema$Type/RECORD [this ^Schema$RecordSchema schema ^GenericRecord data]
-  (let [m! (HashMap.)]
+  (let [m! (transient {})]
     (doseq [^Schema$Field field (.getFields (.getSchema data))]
-      (.put m! (.name field) (from-avro this (.schema field) (.get data (.name field)))))
-    (Collections/unmodifiableMap m!)))
+      (assoc! m! (from-avro-field-name this schema field) (from-avro this (.schema field) (.get data (.name field)))))
+    (when-let [schema-key (:schema-key @(.config this))]
+      (assoc! m! schema-key schema))
+    (persistent! m!)))
 (defmethod to-avro-schema-type Schema$Type/RECORD [this ^Schema$RecordSchema schema data]
   (let [builder (new GenericRecordBuilder schema)]
-    (doseq [^Schema$Field field (filter #(contains? data (.name %)) (.getFields schema))]
-      (.set builder (.name field) (to-avro this (.schema field) (get data (.name field)))))
+    (doseq [^Schema$Field field (filter #(contains? data (from-avro-field-name this schema %)) (.getFields schema))]
+      (.set builder (.name field) (to-avro this (.schema field) (get data (from-avro-field-name this schema field)))))
     (.build builder)))
 
 (defmethod from-avro-schema-type Schema$Type/ENUM [this ^Schema$EnumSchema schema data] (from-avro-enum-type this schema data))
 (defmethod to-avro-schema-type Schema$Type/ENUM [this ^Schema$EnumSchema schema data] (to-avro-enum-type this schema data))
 
 (defmethod from-avro-schema-type Schema$Type/ARRAY [this ^Schema$ArraySchema schema data]
-  (let [l! (ArrayList.)]
+  (let [l! (transient [])]
     (doseq [v data]
-      (.add l! (from-avro this (.getElementType schema) v)))
-    (Collections/unmodifiableList l!)))
+      (conj! l! (from-avro this (.getElementType schema) v)))
+    (persistent! l!)))
 (defmethod to-avro-schema-type Schema$Type/ARRAY [this ^Schema$ArraySchema schema data]
   (let [element-type (.getElementType schema)]
     (vec (map #(to-avro this element-type %) data))))
 
 (defmethod from-avro-schema-type Schema$Type/MAP [this ^Schema$MapSchema schema data]
-  (let [m! (LinkedHashMap.)]
+  (let [m! (transient {})]
     (doseq [[k v] data]
-      (.put m! (str k) (from-avro this (.getValueType schema) v)))
-    (Collections/unmodifiableMap m!)))
+      (assoc! m! (str k) (from-avro this (.getValueType schema) v)))
+    (persistent! m!)))
 (defmethod to-avro-schema-type Schema$Type/MAP [this ^Schema$MapSchema schema data]
   (let [m! (LinkedHashMap.)]
     (doseq [[k v] data]
