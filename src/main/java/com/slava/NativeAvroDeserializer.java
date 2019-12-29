@@ -13,11 +13,11 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.kafka.serializers.AbstractKafkaAvroDeserializer;
 
-import static com.slava.NativeAvroSerdeConfig.ORG_APACHE_AVRO_CONVERSION_STRATEGY_CONFIG;
+import static com.slava.NativeAvroSerdeConfig.COM_SLAVA_CONVERSION_CLASS_CONFIG;
 
 public class NativeAvroDeserializer extends AbstractKafkaAvroDeserializer implements Deserializer<Map> {
 
-    private Conversion conversionStrategy;
+    private Conversion conversion;
 
     /**
      * Constructor used by Kafka consumer.
@@ -34,9 +34,10 @@ public class NativeAvroDeserializer extends AbstractKafkaAvroDeserializer implem
         configure(deserializerConfig(configs));
         NativeAvroSerdeConfig nativeConfig = new NativeAvroSerdeConfig(configs);
 
-        Class<Conversion> conversionStrategyClass = (Class<Conversion>) nativeConfig.getClass(ORG_APACHE_AVRO_CONVERSION_STRATEGY_CONFIG);
+        Class<Conversion> conversionClass = (Class<Conversion>) nativeConfig.getClass(COM_SLAVA_CONVERSION_CLASS_CONFIG);
         try {
-            conversionStrategy = conversionStrategyClass.getDeclaredConstructor().newInstance();
+            conversion = conversionClass.getDeclaredConstructor().newInstance();
+            conversion.configure(nativeConfig);
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             e.printStackTrace();
         }
@@ -76,6 +77,6 @@ public class NativeAvroDeserializer extends AbstractKafkaAvroDeserializer implem
      * Pass a reader schema to get an Avro projection
      */
     public Map deserialize(String topic, byte[] bytes, Schema readerSchema) {
-        return (Map) conversionStrategy.fromAvro(readerSchema, deserialize(bytes, readerSchema));
+        return (Map) conversion.fromAvro(readerSchema, deserialize(bytes, readerSchema));
     }
 }

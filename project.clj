@@ -6,19 +6,22 @@
             :addendum "GPL_ADDITION.md"}
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [org.apache.avro/avro "1.9.1"]
-                 [camel-snake-kebab "0.4.1"]
-                 [org.clojure/test.check "0.10.0"]
-                 [org.clojure/spec.alpha "0.2.176"]
-                 [org.apache.kafka/kafka_2.12 "5.3.1-ce"] ;; bug, needed to avoid error: cannot access VerifiableProperties.
-                 [org.slf4j/slf4j-nop "2.0.0-alpha1"]
+                 [org.apache.kafka/kafka_2.12 "5.3.1-ce"] ;; bug: cannot access VerifiableProperties
                  [io.confluent/kafka-streams-avro-serde "5.3.2"]]
   :aot [com.slava.conversion-native]
   :source-paths ["src/main/clojure"]
   :java-source-paths ["src/main/java"]
-  :test-paths ["src/test/clojure"]
+  :test-paths ["src/test/clojure"
+               "src/test/java"]
   :profiles {:uberjar {:aot :all}
-             :dev {:java-source-paths ["src/test/java"]}
-             :test {:java-source-paths ["src/test/java"]}
+             :dev {:dependencies [[org.slf4j/slf4j-nop "2.0.0-alpha1"]]}
+             :test {:java-source-paths ["src/main/java"
+                                        "src/test/java"]
+                    :dependencies [[org.clojure/test.check "0.10.0"]
+                                   [org.clojure/spec.alpha "0.2.176"]
+                                   [com.bakdata.fluent-kafka-streams-tests/schema-registry-mock "2.0.4"]
+                                   [org.apache.kafka/kafka-streams-test-utils "5.3.1-ce"]
+                                   [kovacnica/clojure.network.ip "0.1.3"]]}
              :precomp {:source-paths ["src/main/clojure"]
                        :aot [com.slava.conversion-native]}}
   :repositories [["confluent" "https://packages.confluent.io/maven/"]])
