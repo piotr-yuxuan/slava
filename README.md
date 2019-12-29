@@ -116,3 +116,4 @@ more useful to you than slava.
 - https://github.com/komolovf/kfk-avro-bridge
 - https://github.com/ovotech/kafka-avro-confluent
 - https://github.com/deercreeklabs/lancaster
+- https://github.com/FundingCircle/jackdaw
