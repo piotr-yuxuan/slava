@@ -23,7 +23,7 @@ This poster reads: « Glory to Soviet People, creator of a powerful
 aviation ». Created in 1954 year it is a perfect symbol of the
 powerful soviet militarism stream of that time. Avro was a British
 aircraft manufacturer, but as the propaganda goes, _Soviet aircrafts
-are the best aircrafts_.
+are the best (class-less) aircrafts_.
 
 # Test example with Kafka Streams
 
