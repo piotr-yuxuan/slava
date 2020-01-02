@@ -1,6 +1,6 @@
 (ns com.slava.readme-test
   (:require [clojure.test :refer :all]
-            [com.slava.conversion-native-headers :as serde]
+            [com.slava.conversion-native :as serde]
             [clojure.network.ip :as ip])
   (:import (org.apache.avro SchemaBuilder Schema)
            (com.slava NativeAvroSerde NativeAvroSerdeConfig)
@@ -17,25 +17,13 @@
            (com.bakdata.schemaregistrymock SchemaRegistryMock)
            (java.nio ByteBuffer)))
 
-(def ^Schema ip-v4-schema (-> (SchemaBuilder/builder (str *ns*)) (.fixed "IPv4") (.size 4)))
+(def ip-v4-schema (-> (SchemaBuilder/builder (str *ns*)) (.fixed "IPv4") (.size 4)))
+(defmethod serde/from-avro-schema-name (.getFullName ip-v4-schema) [this schema ^GenericData$Fixed data] (ip/make-ip-address (.array (serde/from-avro-schema-type this schema data))))
+(defmethod serde/to-avro-schema-name (.getFullName ip-v4-schema) [_ schema ^IPAddress ip-adress] (GenericData$Fixed. schema (.array (doto (ByteBuffer/allocate 4) (.putInt (.numeric_value ip-adress)) (.rewind)))))
 
-(defmethod serde/from-avro-schema-name (.getFullName ip-v4-schema)
-  [this schema ^GenericData$Fixed data]
-  (ip/make-ip-address (.array (serde/from-avro-schema-type this schema data))))
-
-(defmethod serde/to-avro-schema-name (.getFullName ip-v4-schema)
-  [_ schema ^IPAddress ip-adress]
-  (GenericData$Fixed. schema (.array (doto (ByteBuffer/allocate 4) (.putInt (.numeric_value ip-adress)) (.rewind)))))
-
-(def ^Schema ip-v6-schema (-> (SchemaBuilder/builder (str *ns*)) (.fixed "IPv6") (.size 16)))
-
-(defmethod serde/from-avro-schema-name (.getFullName ip-v6-schema)
-  [this schema ^GenericData$Fixed data]
-  (ip/make-ip-address (.array (serde/from-avro-schema-type this schema data))))
-
-(defmethod serde/to-avro-schema-name (.getFullName ip-v6-schema)
-  [_ schema ^IPAddress ip-adress]
-  (GenericData$Fixed. schema (.array (doto (ByteBuffer/allocate 16) (.putDouble (.numeric_value ip-adress)) (.rewind)))))
+(def ip-v6-schema (-> (SchemaBuilder/builder (str *ns*)) (.fixed "IPv6") (.size 16)))
+(defmethod serde/from-avro-schema-name (.getFullName ip-v6-schema) [this schema ^GenericData$Fixed data] (ip/make-ip-address (.array (serde/from-avro-schema-type this schema data))))
+(defmethod serde/to-avro-schema-name (.getFullName ip-v6-schema) [_ schema ^IPAddress ip-adress] (GenericData$Fixed. schema (.array (doto (ByteBuffer/allocate 16) (.putDouble (.numeric_value ip-adress)) (.rewind)))))
 
 (def ^String ip-array-input-topic "ip-array-input-topic")
 (def ^String ip-v4-output-topic "ip-v4-output-topic")
@@ -54,7 +42,7 @@
       (.name "address") (.type ip-v4-schema) .noDefault
       .endRecord))
 
-(defonce schema-registry
+(def schema-registry
   (doto (SchemaRegistryMock.)
     (.start)
     (.registerValueSchema ip-array-input-topic ip-array-input-schema)
@@ -63,9 +51,19 @@
 (def topology
   (let [builder (StreamsBuilder.)]
     (-> (.stream builder ip-array-input-topic)
-        (.flatMapValues (reify ValueMapper (apply [_ record] (map #(do {::address %}) (record :com.slava.readme-test.Input/array)))))
-        (.filter (reify Predicate (test [_ uuid record] (->> ^IPAddress (record ::address) (.version) (= 4)))))
-        (.mapValues (reify ValueMapper (apply [_ record] (clojure.set/rename-keys record {::address :com.slava.readme-test.Output/address}))))
+        (.flatMapValues (reify ValueMapper
+                          (apply [_ record]
+                            (map #(do {::address %})
+                                 (record :com.slava.readme-test.Input/array)))))
+        (.filter (reify Predicate
+                   (test [_ uuid record]
+                     (->> ^IPAddress (record ::address)
+                          (.version)
+                          (= 4)))))
+        (.mapValues (reify ValueMapper
+                      (apply [_ record]
+                        (clojure.set/rename-keys record
+                                                 {::address :com.slava.readme-test.Output/address}))))
         (.to ip-v4-output-topic))
     (.build builder)))
 
@@ -98,3 +96,4 @@
            (list {:com.slava.readme-test.Output/address (ip/make-ip-address "192.168.1.1")}
                  {:com.slava.readme-test.Output/address (ip/make-ip-address "192.168.1.2")}
                  {:com.slava.readme-test.Output/address (ip/make-ip-address "192.168.1.3")})))))
+
