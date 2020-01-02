@@ -4,7 +4,13 @@
 
 [![cljdoc badge](https://cljdoc.org/badge/com.slava/com.slava)](https://cljdoc.org/d/com.slava/com.slava)
 
-# What does it aim at?
+If you are here because you precisely know what you're looking for,
+just read the next section and see the following example code. If
+you've got no idea how you ended up on this page, you might be
+interested in the « explain me like I'm five » section at the bottom
+of this page.
+
+# TL;DR What does it aim at?
 
 Present Kafka messages as primitive map-like data structures, which
 are more friendly than Avro specific / generic record objects. Achieve
@@ -106,14 +112,90 @@ custom Serde in your test code.
 
 Further documentation in available in [![cljdoc badge](https://cljdoc.org/badge/com.slava/com.slava)](https://cljdoc.org/d/com.slava/com.slava)
 
-
 # Related projects
 
 Here are other projects. They are quite awesome. Perhaps they would be
-more useful to you than slava.
+more useful to you than Slava.
 
 - https://github.com/damballa/abracad
 - https://github.com/komolovf/kfk-avro-bridge
 - https://github.com/ovotech/kafka-avro-confluent
 - https://github.com/deercreeklabs/lancaster
 - https://github.com/FundingCircle/jackdaw
+
+# Explain me like I'm five
+
+There is a super cool platform called Kafka which is quite handy when
+it comes to record a stream of events, store it in a robust manner,
+and allow different readers to to replay it as they wish à la time
+travel.
+
+As the 'big' in _big data_ actually means quite big, Kafka has to
+store big data in a smart, compactful way. Avro is a way to represent
+a lot of data while using only very few storage space. It also
+enforces some constraints so that you know for sure they will always
+respect some precise shape. For instance when you store the details of
+a person, it must always have a surname and a first name, and the age
+must be a number – but sometimes can be null if unknown.
+
+To put it in a nutshell, you need the equivalent of both a vacuum pump
+and bicycle pump:
+
+- A vacuum pump reduces the data size so you can easily move and store
+  them (technical word for it: serialisation);
+- A bicycle pump inflates data back to their original, useful look
+  (technical word for it: deserialisation). You can seamlessly uses
+  them in your favourite programming language.
+
+Of course, Kafka already provides such two pumps for a very well
+established programming language: Java. Programming languages, just
+like human languages, have different strategies to express ideas. For
+a various set of reasons, I prefer to express programs in Clojure
+which I do find more terse, more precise, and which allows to think
+less than Java to express the same ideas as more straightforward.
+
+However, after some research, I didn't find such two-pump tool for
+Clojure the same way it exists for Java. Of course some similar tools
+exist but for quite petty details I find none of them completely
+satisfaying. _Slava_ is yet another attempt to create such tool. In
+writing it, I've tried my best to rely on other's code: the less code
+I write, the less bug I create. Furthermore I've been willing to stay
+focused – do only one thing, but do it way – and to be a good citizen
+– use standard tools, make this code easily reusable and adaptable to
+yours.
+
+The technical word for two-pump system is a `Serde`, wich is portmanteau
+for serialisation and deserialisation.
+
+# Design strategy
+
+As an Avro `Serde` is available for Java, I felt I could chain to with
+another `Serde` – composition over inheritance. However Java type
+system defines a `Serde` as from something to byte array, so it felt
+short. I didn't want to reinvent the wheel by creating my own
+serialiser and deserialiser from scratch so I chose to extend the Java
+`Serde` provided by Confluent. I just wrap it around Clojure <-> Java
+conversion system. `Serde` actually is an interface, so this
+custom implementation should play nice with other tools.
+
+Schema resolution relies on schema registry but an Avro map can
+contain a key to point to specific schema. When relying on schema
+registry only latest registered schema is considered so no unintended
+modification should happen.
+
+This conversion wrapper should represent Avro message as native
+immutable Clojure datastructures so you don't even notice it comes
+from Avro. It should support Avro logical types. Custom conversion
+mechanism based on schema name is also available. Dispatch on logical
+type name and schema name makes protocol-based dispatch less relevant
+so the main library namespace hence exposes six multimethods:
+
+- The highest priority goes to `{from,to}-avro-schema-name` so that
+  any user override takes precedence;
+- Then comes `{from,to}-avro-logical-type` if stateful Avro
+`GenericData` conversion mechanism is not used
+- Finally `{from,to}-avro-schema-type` relies on schema type
+
+Dispatch on Avro schema name allows Avro messages to be directly
+mapped onto arbitrary types such as IP addresses.
+
