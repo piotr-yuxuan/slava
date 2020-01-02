@@ -7,13 +7,13 @@
 If you are here because you precisely know what you're looking for,
 just read the next section and see the following example code. If
 you've got no idea how you ended up on this page, you might be
-interested in the « explain me like I'm five » section at the bottom
+interested in the « explain me like I'm five » section at the bottom
 of this page.
 
 # TL;DR What does it aim at?
 
 Present Kafka messages as primitive map-like data structures, which
-are more friendly than Avro specific / generic record objects. Achieve
+are more friendly than Avro specific / generic record objects. Achieve
 it by providing an opinionated Avro Kafka Serde heavily relying on
 upstream Avro and Confluent code.
 
@@ -25,8 +25,8 @@ upstream Avro and Confluent code.
 
 ![слава советскому народу](resources/слава-советскому-народу.jpg)
 
-This poster reads: « Glory to Soviet People, creator of a powerful
-aviation ». Created in 1954 year it is a perfect symbol of the
+This poster reads: « Glory to Soviet People, creator of a powerful
+aviation ». Created in 1954 year it is a perfect symbol of the
 powerful soviet militarism stream of that time. Avro was a British
 aircraft manufacturer, but as the propaganda goes, _Soviet aircrafts
 are the best (class-less) aircrafts_.
@@ -136,14 +136,14 @@ a lot of data while using only very few storage space. It also
 enforces some constraints so that you know for sure they will always
 respect some precise shape. For instance when you store the details of
 a person, it must always have a surname and a first name, and the age
-must be a number – but sometimes can be null if unknown.
+must be a number – but sometimes can be null if unknown.
 
 To put it in a nutshell, you need the equivalent of both a vacuum pump
 and bicycle pump:
 
 - A vacuum pump reduces the data size so you can easily move and store
   them (technical word for it: serialisation);
-- A bicycle pump inflates data back to their original, useful look
+- A bicycle pump inflates data back to their original, useful form
   (technical word for it: deserialisation). You can seamlessly uses
   them in your favourite programming language.
 
@@ -160,7 +160,7 @@ exist but for quite petty details I find none of them completely
 satisfaying. _Slava_ is yet another attempt to create such tool. In
 writing it, I've tried my best to rely on other's code: the less code
 I write, the less bug I create. Furthermore I've been willing to stay
-focused – do only one thing, but do it way – and to be a good citizen
+focused – do only one thing, but do it well – and to be a good citizen
 – use standard tools, make this code easily reusable and adaptable to
 yours.
 
@@ -174,9 +174,9 @@ another `Serde` – composition over inheritance. However Java type
 system defines a `Serde` as from something to byte array, so it felt
 short. I didn't want to reinvent the wheel by creating my own
 serialiser and deserialiser from scratch so I chose to extend the Java
-`Serde` provided by Confluent. I just wrap it around Clojure <-> Java
-conversion system. `Serde` actually is an interface, so this
-custom implementation should play nice with other tools.
+`Serde` provided by Confluent. I just wrap around it a Clojure
+<-> Java conversion system. `Serde` being an interface, this custom
+implementation should play nice with other tools.
 
 Schema resolution relies on schema registry but an Avro map can
 contain a key to point to specific schema. When relying on schema
@@ -188,14 +188,54 @@ immutable Clojure datastructures so you don't even notice it comes
 from Avro. It should support Avro logical types. Custom conversion
 mechanism based on schema name is also available. Dispatch on logical
 type name and schema name makes protocol-based dispatch less relevant
-so the main library namespace hence exposes six multimethods:
+so the main library namespace hence exposes six multimethods on three
+levels:
 
 - The highest priority goes to `{from,to}-avro-schema-name` so that
-  any user override takes precedence;
+  user's override takes precedence;
 - Then comes `{from,to}-avro-logical-type` if stateful Avro
-`GenericData` conversion mechanism is not used
+  `GenericData` conversion mechanism is not used
 - Finally `{from,to}-avro-schema-type` relies on schema type
 
 Dispatch on Avro schema name allows Avro messages to be directly
-mapped onto arbitrary types such as IP addresses.
+mapped onto arbitrary types such as IP addresses Let's call this
+arbitrary types _proprietary business types_.
+
+*Note about protocol v. multimethod*
+
+The lowest level from above fits very nicely with protocol as schema
+`.getType` function is strongly linked to the actual schema class. The
+middle level about logical types doesn't hinder either protocol-based
+dispatch, provided the logical type class is used instead of logical
+type names. However the highest level sounds more difficult as no
+schema class can be used (no SpecificRecord). What about depending on
+the mapped business types, for example `IpAddress`?
+
+This implies one business type is mapped onto more than one Avro
+schema (example continued: either `IPv4/fixed(4)` or `IPv6/fixed(16)`)
+which depends on the inner conversion logic. I find it more
+obscure. Moreover this sounds great from Clojure to Avro, but which
+efficient, stateless way can we use from Avro to Clojure? We would
+need a register, just like jackdaw does. I'm open to this option, but
+I still need to be convinced.
+
+*Note about [methodical](https://github.com/camsaul/methodical)*
+
+I'm a bit reluctant to introduce such a powerful dependency into a
+library code. Sure this is a great library, but any code using it
+becomes less standard, less easy to understand, much more funny to
+write and read – but is it made any simple?
+
+
+
+
+
+
+
+
+
+
+
+
+
 
