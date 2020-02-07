@@ -7,9 +7,9 @@
   that you can introduce this library in some new code without
   changing too much. After all, it's newcomer' job to get used to its
   surroundings."
-  (:import (org.apache.avro Schema Schema$Type Schema$FixedSchema Schema$UnionSchema Schema$MapSchema Schema$ArraySchema Schema$EnumSchema Schema$RecordSchema Schema$Field Conversions$DecimalConversion Conversions$UUIDConversion Conversion LogicalType SchemaBuilder UnresolvedUnionException)
-           (java.util Collections HashMap LinkedHashMap ArrayList)
-           (org.apache.avro.generic GenericRecord GenericRecordBuilder GenericFixed GenericData$Fixed GenericData)
+  (:import (org.apache.avro Schema Schema$Type Schema$FixedSchema Schema$UnionSchema Schema$MapSchema Schema$ArraySchema Schema$EnumSchema Schema$RecordSchema Schema$Field Conversions$DecimalConversion Conversions$UUIDConversion Conversion LogicalType SchemaBuilder)
+           (java.util Collections LinkedHashMap)
+           (org.apache.avro.generic GenericRecord GenericRecordBuilder GenericFixed GenericData$Fixed GenericData GenericData$EnumSymbol)
            (java.nio ByteBuffer)
            (org.apache.avro.data TimeConversions$DateConversion TimeConversions$TimeMicrosConversion TimeConversions$TimeMillisConversion TimeConversions$TimestampMicrosConversion TimeConversions$TimestampMillisConversion)
            (java.time Period)
@@ -80,12 +80,8 @@
   (fn [^ConversionNative this ^Schema schema ^Object data] (dispatch-schema-type schema)))
 (defmethod to-avro-schema-type :default [^ConversionNative this ^Schema schema ^Object data] nil)
 
-(defonce debug (atom nil))
-(comment (reset! debug nil))
-
 (defn from-avro
   [this ^Schema schema data]
-  (swap! debug update :from-avro (fnil conj []) [schema data])
   (or (from-avro-schema-name this schema data)
       (from-avro-logical-type this schema data)
       (from-avro-schema-type this schema data)
@@ -93,7 +89,6 @@
 
 (defn to-avro
   [this ^Schema schema data]
-  (swap! debug update :to-avro (fnil conj []) [schema data])
   (or (to-avro-schema-name this schema data)
       (to-avro-logical-type this schema data)
       (to-avro-schema-type this schema data)
@@ -109,6 +104,7 @@
 (defmethod from-avro-field-name :default [this schema field] (.name field))
 (defmethod from-avro-field-name :keyword [this schema field] (keyword (.name field)))
 (defmethod from-avro-field-name :namespaced-keyword [this schema field] (keyword (.getFullName schema) (.name field)))
+;; TODO add other options to map keys and field names to handle some case conversions more easily.
 
 (defmulti from-avro-map-key
   ""
@@ -128,13 +124,13 @@
   {:arglists '([^ConversionNative this ^Schema$RecordSchema schema data])}
   (fn [^ConversionNative this ^Schema$RecordSchema schema data] (:enum-type @(.config this))))
 (defmethod from-avro-enum-type :default [this ^Schema$RecordSchema schema data] (str data))
-(defmethod to-avro-enum-type :default [this ^Schema$RecordSchema schema data] (str data))
+(defmethod to-avro-enum-type :default [this ^Schema$RecordSchema schema data] (GenericData$EnumSymbol. schema (str data)))
 (defmethod from-avro-enum-type :keyword [this ^Schema$RecordSchema schema data] (keyword (str data)))
-(defmethod to-avro-enum-type :keyword [this ^Schema$RecordSchema schema data] (name data))
+(defmethod to-avro-enum-type :keyword [this ^Schema$RecordSchema schema data] (GenericData$EnumSymbol. schema (name data)))
 (defmethod from-avro-enum-type :namespaced-keyword [this ^Schema$RecordSchema schema data] (keyword (.getFullName schema) (str data)))
-(defmethod to-avro-enum-type :namespaced-keyword [this ^Schema$RecordSchema schema data] (name data))
+(defmethod to-avro-enum-type :namespaced-keyword [this ^Schema$RecordSchema schema data] (GenericData$EnumSymbol. schema (name data)))
 (defmethod from-avro-enum-type :enum [this ^Schema$RecordSchema schema data] (Enum/valueOf (Class/forName (.getFullName schema)) (str data))) ;; This will raise if no Enum is present
-(defmethod to-avro-enum-type :enum [this ^Schema$RecordSchema schema data] (str data))
+(defmethod to-avro-enum-type :enum [this ^Schema$RecordSchema schema data] (GenericData$EnumSymbol. schema (str data)))
 
 ;;;
 ;;; Implementation of dispatch on schema types
