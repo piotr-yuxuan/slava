@@ -136,6 +136,40 @@
 ;;; Implementation of dispatch on schema types
 ;;;
 
+(declare record-field)
+
+(defn to-avro-record
+  "Given a config and a schema, return a higher-order function which turns Clojure data structures to record of the schema. The optional third parameter is when you need to generate records from a same basis."
+  ([config schema] (to-avro-record config schema nil))
+  ([config schema default]
+   (let [record-base (or (and default ((to-avro-record config schema nil) default)) schema)
+         fields (map (fn [^Schema$Field field]
+                       {:avro-field-name (.name ^Schema$Field field)
+                        :clj-field-name (from-avro-field-name config schema field)
+                        :field-schema (.schema ^Schema$Field field)})
+                     (.getFields ^Schema schema))
+         record-fields (record-field config schema default)]
+     (fn record-producer [data]
+       (let [;; GenericRecordBuilder is stateful, hence must be created each time
+             record-builder (if default
+                              (GenericRecordBuilder. ^GenericData$Record record-base) ;; FIXME this forces all fields to be set. GenericRecordBuilder be better. Here is a bug.
+                              (GenericRecordBuilder. ^Schema schema))]
+         (doseq [{:keys [avro-field-name clj-field-name field-schema]} (filter #(contains? data (% :clj-field-name)) fields)]
+           (let [clj-value (get data clj-field-name)
+                 avro-value (if-let [process-record-field (record-fields avro-field-name)]
+                              (process-record-field clj-value)
+                              (to-avro config field-schema clj-value))]
+             (.set record-builder
+                   ^String avro-field-name
+                   avro-value)))
+         (.build record-builder))))))
+
+(defn record-field
+  [config ^Schema schema default]
+  (->> (.getFields schema)
+       (filter #(= Schema$Type/RECORD (.getType (.schema ^Schema$Field %))))
+       (map (fn [^Schema$Field field] (vector (.name field) (to-avro-record config (.schema field) default))))
+       (into {})))
 
 (defmethod from-avro-schema-type Schema$Type/RECORD [config ^Schema$RecordSchema schema ^GenericRecord data]
   (let [m! (transient {})]
