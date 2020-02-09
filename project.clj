@@ -1,6 +1,6 @@
-(defproject slava "0.0.7-SNAPSHOT"
+(defproject slava "0.0.12"
   :description "Infer specs from any Avro type"
-  :url "https://cljdoc.org/d/com.slava/com.slava/0.0.7-SNAPSHOT"
+  :url "https://cljdoc.org/d/com.slava/com.slava/0.0.12"
   :license {:name "GNU GPL v3+"
             :url "http://www.gnu.org/licenses/gpl-3.0.en.html"
             :addendum "GPL_ADDITION.md"}
