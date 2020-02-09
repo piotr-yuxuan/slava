@@ -9,7 +9,7 @@
   surroundings."
   (:import (org.apache.avro Schema Schema$Type Schema$FixedSchema Schema$UnionSchema Schema$MapSchema Schema$ArraySchema Schema$EnumSchema Schema$RecordSchema Schema$Field Conversions$DecimalConversion Conversions$UUIDConversion Conversion LogicalType SchemaBuilder)
            (java.util Collections LinkedHashMap)
-           (org.apache.avro.generic GenericRecord GenericRecordBuilder GenericFixed GenericData$Fixed GenericData GenericData$EnumSymbol)
+           (org.apache.avro.generic GenericRecord GenericRecordBuilder GenericFixed GenericData$Fixed GenericData GenericData$EnumSymbol GenericData$Record)
            (java.nio ByteBuffer)
            (org.apache.avro.data TimeConversions$DateConversion TimeConversions$TimeMicrosConversion TimeConversions$TimeMillisConversion TimeConversions$TimestampMicrosConversion TimeConversions$TimestampMillisConversion)
            (java.time Period)
@@ -35,8 +35,8 @@
       {:schema-key (keyword (.getString config NativeAvroSerdeConfig/ORG_APACHE_AVRO_SCHEMA_KEY_CONFIG))})))
 
 (defn impl-configure
-  [this ^NativeAvroSerdeConfig config]
-  (reset! (.config this) (config->map config)))
+  [config ^NativeAvroSerdeConfig config]
+  (reset! (.config config) (config->map config)))
 
 (declare from-avro to-avro)
 
@@ -44,14 +44,14 @@
 (defn dispatch-schema-name [^Schema schema] (.getFullName schema))
 (defmulti from-avro-schema-name
   ""
-  {:arglists '([^ConversionNative this ^Schema schema ^Object data])}
-  (fn [^ConversionNative this ^Schema schema ^Object data] (dispatch-schema-name schema)))
-(defmethod from-avro-schema-name :default [^ConversionNative this ^Schema schema ^Object data] nil)
+  {:arglists '([^ConversionNative config ^Schema schema ^Object data])}
+  (fn [^ConversionNative config ^Schema schema ^Object data] (dispatch-schema-name schema)))
+(defmethod from-avro-schema-name :default [^ConversionNative config ^Schema schema ^Object data] nil)
 (defmulti to-avro-schema-name
   ""
-  {:arglists '([^ConversionNative this ^Schema schema ^Object data])}
-  (fn [^ConversionNative this ^Schema schema ^Object data] (dispatch-schema-name schema)))
-(defmethod to-avro-schema-name :default [^ConversionNative this ^Schema schema ^Object data] nil)
+  {:arglists '([^ConversionNative config ^Schema schema ^Object data])}
+  (fn [^ConversionNative config ^Schema schema ^Object data] (dispatch-schema-name schema)))
+(defmethod to-avro-schema-name :default [^ConversionNative config ^Schema schema ^Object data] nil)
 
 (defn dispatch-logical-type [^Schema schema]
   (when-let [logical-type (.getLogicalType schema)]
@@ -59,138 +59,139 @@
       (.getName logical-type))))
 (defmulti from-avro-logical-type
   ""
-  {:arglists '([^ConversionNative this ^Schema schema ^Object data])}
-  (fn [^ConversionNative this ^Schema schema ^Object data] (dispatch-logical-type schema)))
-(defmethod from-avro-logical-type :default [^ConversionNative this ^Schema schema ^Object data] nil)
+  {:arglists '([^ConversionNative config ^Schema schema ^Object data])}
+  (fn [^ConversionNative config ^Schema schema ^Object data] (dispatch-logical-type schema)))
+(defmethod from-avro-logical-type :default [^ConversionNative config ^Schema schema ^Object data] nil)
 (defmulti to-avro-logical-type
   ""
-  {:arglists '([^ConversionNative this ^Schema schema ^Object data])}
-  (fn [^ConversionNative this ^Schema schema ^Object data] (dispatch-logical-type schema)))
-(defmethod to-avro-logical-type :default [^ConversionNative this ^Schema schema ^Object data] nil)
+  {:arglists '([^ConversionNative config ^Schema schema ^Object data])}
+  (fn [^ConversionNative config ^Schema schema ^Object data] (dispatch-logical-type schema)))
+(defmethod to-avro-logical-type :default [^ConversionNative config ^Schema schema ^Object data] nil)
 
 (defn dispatch-schema-type [^Schema schema] (.getType schema))
 (defmulti from-avro-schema-type
   ""
-  {:arglists '([^ConversionNative this ^Schema schema ^Object data])}
-  (fn [^ConversionNative this ^Schema schema ^Object data] (dispatch-schema-type schema)))
-(defmethod from-avro-schema-type :default [^ConversionNative this ^Schema schema ^Object data] nil)
+  {:arglists '([^ConversionNative config ^Schema schema ^Object data])}
+  (fn [^ConversionNative config ^Schema schema ^Object data] (dispatch-schema-type schema)))
+(defmethod from-avro-schema-type :default [^ConversionNative config ^Schema schema ^Object data] nil)
 (defmulti to-avro-schema-type
   ""
-  {:arglists '([^ConversionNative this ^Schema schema ^Object data])}
-  (fn [^ConversionNative this ^Schema schema ^Object data] (dispatch-schema-type schema)))
-(defmethod to-avro-schema-type :default [^ConversionNative this ^Schema schema ^Object data] nil)
+  {:arglists '([^ConversionNative config ^Schema schema ^Object data])}
+  (fn [^ConversionNative config ^Schema schema ^Object data] (dispatch-schema-type schema)))
+(defmethod to-avro-schema-type :default [^ConversionNative config ^Schema schema ^Object data] nil)
 
 (defn from-avro
-  [this ^Schema schema data]
-  (or (from-avro-schema-name this schema data)
-      (from-avro-logical-type this schema data)
-      (from-avro-schema-type this schema data)
+  [config ^Schema schema data]
+  (or (from-avro-schema-name config schema data)
+      (from-avro-logical-type config schema data)
+      (from-avro-schema-type config schema data)
       data))
 
 (defn to-avro
-  [this ^Schema schema data]
-  (or (to-avro-schema-name this schema data)
-      (to-avro-logical-type this schema data)
-      (to-avro-schema-type this schema data)
+  [config ^Schema schema data]
+  (or (to-avro-schema-name config schema data)
+      (to-avro-logical-type config schema data)
+      (to-avro-schema-type config schema data)
       data))
 
-(defn impl-fromAvro [this schema object] (from-avro this schema object))
-(defn impl-toAvro [this schema object] (to-avro this schema object))
+(defn impl-fromAvro [config schema object] (from-avro config schema object))
+(defn impl-toAvro [config schema object] (to-avro config schema object))
 
 (defmulti from-avro-field-name
-  "" ;; TODO remove this
-  {:arglists '([^ConversionNative this ^Schema$RecordSchema schema ^Schema$Field field])}
-  (fn [^ConversionNative this ^Schema$RecordSchema schema ^Schema$Field field] (:field-name @(.config this))))
-(defmethod from-avro-field-name :default [this schema field] (.name field))
-(defmethod from-avro-field-name :keyword [this schema field] (keyword (.name field)))
-(defmethod from-avro-field-name :namespaced-keyword [this schema field] (keyword (.getFullName schema) (.name field)))
+  "" ;; TODO remove config
+  {:arglists '([^ConversionNative config ^Schema$RecordSchema schema ^Schema$Field field])}
+  (fn [^ConversionNative config ^Schema$RecordSchema schema ^Schema$Field field] (:field-name @(.config config))))
+(defmethod from-avro-field-name :default [config schema field] (.name field))
+(defmethod from-avro-field-name :keyword [config schema field] (keyword (.name field)))
+(defmethod from-avro-field-name :namespaced-keyword [config schema field] (keyword (.getFullName schema) (.name field)))
 ;; TODO add other options to map keys and field names to handle some case conversions more easily.
 
 (defmulti from-avro-map-key
   ""
-  {:arglists '([^ConversionNative this ^Schema$RecordSchema schema ^Schema$Field field ^String map-key])}
-  (fn [^ConversionNative this ^Schema$RecordSchema schema ^Schema$Field field ^String map-key] (:map-key @(.config this))))
-(defmethod from-avro-map-key :default [this schema field map-key] (str map-key))
-(defmethod from-avro-map-key :keyword [this schema field map-key] (keyword map-key))
-(defmethod from-avro-map-key :namespaced-keyword [this schema field map-key] (keyword (str (.getFullName schema) "." (.name field)) map-key))
-(defmethod from-avro-map-key :record-namespaced-keyword [this schema field map-key] (keyword (.getFullName schema) (str (.name field) "." map-key)))
+  {:arglists '([^ConversionNative config ^Schema$RecordSchema schema ^Schema$Field field ^String map-key])}
+  (fn [^ConversionNative config ^Schema$RecordSchema schema ^Schema$Field field ^String map-key] (:map-key @(.config config))))
+(defmethod from-avro-map-key :default [config schema field map-key] (str map-key))
+(defmethod from-avro-map-key :keyword [config schema field map-key] (keyword map-key))
+(defmethod from-avro-map-key :namespaced-keyword [config schema field map-key] (keyword (str (.getFullName schema) "." (.name field)) map-key))
+(defmethod from-avro-map-key :record-namespaced-keyword [config schema field map-key] (keyword (.getFullName schema) (str (.name field) "." map-key)))
 
 (defmulti from-avro-enum-type
   ""
-  {:arglists '([^ConversionNative this ^Schema$RecordSchema schema data])}
-  (fn [^ConversionNative this ^Schema$RecordSchema schema data] (:enum-type @(.config this))))
+  {:arglists '([^ConversionNative config ^Schema$RecordSchema schema data])}
+  (fn [^ConversionNative config ^Schema$RecordSchema schema data] (:enum-type @(.config config))))
 (defmulti to-avro-enum-type
   ""
-  {:arglists '([^ConversionNative this ^Schema$RecordSchema schema data])}
-  (fn [^ConversionNative this ^Schema$RecordSchema schema data] (:enum-type @(.config this))))
-(defmethod from-avro-enum-type :default [this ^Schema$RecordSchema schema data] (str data))
-(defmethod to-avro-enum-type :default [this ^Schema$RecordSchema schema data] (GenericData$EnumSymbol. schema (str data)))
-(defmethod from-avro-enum-type :keyword [this ^Schema$RecordSchema schema data] (keyword (str data)))
-(defmethod to-avro-enum-type :keyword [this ^Schema$RecordSchema schema data] (GenericData$EnumSymbol. schema (name data)))
-(defmethod from-avro-enum-type :namespaced-keyword [this ^Schema$RecordSchema schema data] (keyword (.getFullName schema) (str data)))
-(defmethod to-avro-enum-type :namespaced-keyword [this ^Schema$RecordSchema schema data] (GenericData$EnumSymbol. schema (name data)))
-(defmethod from-avro-enum-type :enum [this ^Schema$RecordSchema schema data] (Enum/valueOf (Class/forName (.getFullName schema)) (str data))) ;; This will raise if no Enum is present
-(defmethod to-avro-enum-type :enum [this ^Schema$RecordSchema schema data] (GenericData$EnumSymbol. schema (str data)))
+  {:arglists '([^ConversionNative config ^Schema$RecordSchema schema data])}
+  (fn [^ConversionNative config ^Schema$RecordSchema schema data] (:enum-type @(.config config))))
+(defmethod from-avro-enum-type :default [config ^Schema$RecordSchema schema data] (str data))
+(defmethod to-avro-enum-type :default [config ^Schema$RecordSchema schema data] (GenericData$EnumSymbol. schema (str data)))
+(defmethod from-avro-enum-type :keyword [config ^Schema$RecordSchema schema data] (keyword (str data)))
+(defmethod to-avro-enum-type :keyword [config ^Schema$RecordSchema schema data] (GenericData$EnumSymbol. schema (name data)))
+(defmethod from-avro-enum-type :namespaced-keyword [config ^Schema$RecordSchema schema data] (keyword (.getFullName schema) (str data)))
+(defmethod to-avro-enum-type :namespaced-keyword [config ^Schema$RecordSchema schema data] (GenericData$EnumSymbol. schema (name data)))
+(defmethod from-avro-enum-type :enum [config ^Schema$RecordSchema schema data] (Enum/valueOf (Class/forName (.getFullName schema)) (str data))) ;; This will raise if no Enum is present
+(defmethod to-avro-enum-type :enum [config ^Schema$RecordSchema schema data] (GenericData$EnumSymbol. schema (str data)))
 
 ;;;
 ;;; Implementation of dispatch on schema types
 ;;;
 
-(defmethod from-avro-schema-type Schema$Type/RECORD [this ^Schema$RecordSchema schema ^GenericRecord data]
+
+(defmethod from-avro-schema-type Schema$Type/RECORD [config ^Schema$RecordSchema schema ^GenericRecord data]
   (let [m! (transient {})]
     (doseq [^Schema$Field field (.getFields (.getSchema data))]
-      (assoc! m! (from-avro-field-name this schema field) (from-avro this (.schema field) (.get data (.name field)))))
-    (when-let [schema-key (:schema-key @(.config this))]
+      (assoc! m! (from-avro-field-name config schema field) (from-avro config (.schema field) (.get data (.name field)))))
+    (when-let [schema-key (:schema-key @(.config config))]
       (assoc! m! schema-key schema))
     (persistent! m!)))
-(defmethod to-avro-schema-type Schema$Type/RECORD [this ^Schema$RecordSchema schema data]
+(defmethod to-avro-schema-type Schema$Type/RECORD [config ^Schema$RecordSchema schema data]
   (let [builder (new GenericRecordBuilder schema)]
-    (doseq [^Schema$Field field (filter #(contains? data (from-avro-field-name this schema %)) (.getFields schema))]
-      (.set builder (.name field) (to-avro this (.schema field) (get data (from-avro-field-name this schema field)))))
+    (doseq [^Schema$Field field (filter #(contains? data (from-avro-field-name config schema %)) (.getFields schema))]
+      (.set builder (.name field) (to-avro config (.schema field) (get data (from-avro-field-name config schema field)))))
     (.build builder)))
 
-(defmethod from-avro-schema-type Schema$Type/ENUM [this ^Schema$EnumSchema schema data] (from-avro-enum-type this schema data))
-(defmethod to-avro-schema-type Schema$Type/ENUM [this ^Schema$EnumSchema schema data] (to-avro-enum-type this schema data))
+(defmethod from-avro-schema-type Schema$Type/ENUM [config ^Schema$EnumSchema schema data] (from-avro-enum-type config schema data))
+(defmethod to-avro-schema-type Schema$Type/ENUM [config ^Schema$EnumSchema schema data] (to-avro-enum-type config schema data))
 
-(defmethod from-avro-schema-type Schema$Type/ARRAY [this ^Schema$ArraySchema schema data]
+(defmethod from-avro-schema-type Schema$Type/ARRAY [config ^Schema$ArraySchema schema data]
   (let [l! (transient [])]
     (doseq [v data]
-      (conj! l! (from-avro this (.getElementType schema) v)))
+      (conj! l! (from-avro config (.getElementType schema) v)))
     (persistent! l!)))
-(defmethod to-avro-schema-type Schema$Type/ARRAY [this ^Schema$ArraySchema schema data]
+(defmethod to-avro-schema-type Schema$Type/ARRAY [config ^Schema$ArraySchema schema data]
   (let [element-type (.getElementType schema)]
-    (vec (map #(to-avro this element-type %) data))))
+    (vec (map #(to-avro config element-type %) data))))
 
-(defmethod from-avro-schema-type Schema$Type/MAP [this ^Schema$MapSchema schema data]
+(defmethod from-avro-schema-type Schema$Type/MAP [config ^Schema$MapSchema schema data]
   (let [m! (transient {})]
     (doseq [[k v] data]
-      (assoc! m! (str k) (from-avro this (.getValueType schema) v)))
+      (assoc! m! (str k) (from-avro config (.getValueType schema) v)))
     (persistent! m!)))
-(defmethod to-avro-schema-type Schema$Type/MAP [this ^Schema$MapSchema schema data]
+(defmethod to-avro-schema-type Schema$Type/MAP [config ^Schema$MapSchema schema data]
   (let [m! (LinkedHashMap.)]
     (doseq [[k v] data]
-      (.put m! (str k) (to-avro this (.getValueType schema) v)))
+      (.put m! (str k) (to-avro config (.getValueType schema) v)))
     (Collections/unmodifiableMap m!)))
 
-(defmethod from-avro-schema-type Schema$Type/UNION [this ^Schema$UnionSchema schema data]
+(defmethod from-avro-schema-type Schema$Type/UNION [config ^Schema$UnionSchema schema data]
   (some (fn first-matching-type [schema]
-          (try (from-avro this schema data) (catch Exception _)))
+          (try (from-avro config schema data) (catch Exception _)))
         (condp = (.getType schema)
           Schema$Type/UNION (.getTypes schema)
           Schema$Type/ARRAY (.getTypes (.getElementType schema)))))
-(defmethod to-avro-schema-type Schema$Type/UNION [this ^Schema$UnionSchema schema data]
+(defmethod to-avro-schema-type Schema$Type/UNION [config ^Schema$UnionSchema schema data]
   (some (fn first-matching-type [schema]
-          (try (to-avro this schema data) (catch Exception _)))
+          (try (to-avro config schema data) (catch Exception _)))
         (condp = (.getType schema)
           Schema$Type/UNION (.getTypes schema)
           Schema$Type/ARRAY (.getTypes (.getElementType schema)))))
 
-(defmethod from-avro-schema-type Schema$Type/FIXED [this ^Schema$FixedSchema schema data]
+(defmethod from-avro-schema-type Schema$Type/FIXED [config ^Schema$FixedSchema schema data]
   (doto (ByteBuffer/allocate (.getFixedSize schema)) (.put (.bytes ^GenericFixed data)) (.rewind)))
-(defmethod to-avro-schema-type Schema$Type/FIXED [this ^Schema$FixedSchema schema data]
+(defmethod to-avro-schema-type Schema$Type/FIXED [config ^Schema$FixedSchema schema data]
   (GenericData$Fixed. schema (.array ^ByteBuffer data)))
 
-(defmethod from-avro-schema-type Schema$Type/STRING [this ^Schema$FixedSchema schema data] (str data))
+(defmethod from-avro-schema-type Schema$Type/STRING [config ^Schema$FixedSchema schema data] (str data))
 
 ;;;
 ;;; Implementation of dispatch on logical types
