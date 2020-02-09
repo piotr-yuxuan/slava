@@ -142,7 +142,9 @@
   "Given a config and a schema, return a higher-order function which turns Clojure data structures to record of the schema. The optional third parameter is when you need to generate records from a same basis."
   ([config schema] (to-avro-record config schema nil))
   ([config schema default]
-   (let [record-base (or (and default ((to-avro-record config schema nil) default)) schema)
+   (let [base-record-builder (if default
+                               (GenericRecordBuilder. ^GenericData$Record ((to-avro-record config schema nil) default)) ;; FIXME this forces all fields to be set. GenericRecordBuilder be better. Here is a bug.
+                               (GenericRecordBuilder. ^Schema schema))
          fields (map (fn [^Schema$Field field]
                        {:avro-field-name (.name ^Schema$Field field)
                         :clj-field-name (from-avro-field-name config schema field)
@@ -151,9 +153,7 @@
          record-fields (record-field config schema default)]
      (fn record-producer [data]
        (let [;; GenericRecordBuilder is stateful, hence must be created each time
-             record-builder (if default
-                              (GenericRecordBuilder. ^GenericData$Record record-base) ;; FIXME this forces all fields to be set. GenericRecordBuilder be better. Here is a bug.
-                              (GenericRecordBuilder. ^Schema schema))]
+             record-builder (GenericRecordBuilder. ^GenericRecordBuilder base-record-builder)]
          (doseq [{:keys [avro-field-name clj-field-name field-schema]} (filter #(contains? data (% :clj-field-name)) fields)]
            (let [clj-value (get data clj-field-name)
                  avro-value (if-let [process-record-field (record-fields avro-field-name)]
