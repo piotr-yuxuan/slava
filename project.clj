@@ -13,6 +13,8 @@
   :java-source-paths ["src/main/java"]
   :test-paths ["src/test/clojure"
                "src/test/java"]
+  :javac-options ["-target" "1.8" "-source" "1.8"]
+  :global-vars {*warn-on-reflection* true}
   :profiles {:uberjar {:aot :all}
              :dev {:dependencies [[org.slf4j/slf4j-nop "2.0.0-alpha1"]]}
              :test {:java-source-paths ["src/main/java"
