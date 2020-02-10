@@ -8,7 +8,7 @@
                  [org.apache.avro/avro "1.9.1"]
                  [org.apache.kafka/kafka_2.12 "5.3.1-ce"] ;; bug: cannot access VerifiableProperties
                  [io.confluent/kafka-streams-avro-serde "5.3.2"]]
-  :aot [com.slava.conversion-native]
+  :aot [com.slava.clj<->avro]
   :source-paths ["src/main/clojure"]
   :java-source-paths ["src/main/java"]
   :test-paths ["src/test/clojure"
@@ -25,5 +25,5 @@
                                    [org.apache.kafka/kafka-streams-test-utils "5.3.1-ce"]
                                    [kovacnica/clojure.network.ip "0.1.3"]]}
              :precomp {:source-paths ["src/main/clojure"]
-                       :aot [com.slava.conversion-native]}}
+                       :aot [com.slava.clj<->avro]}}
   :repositories [["confluent" "https://packages.confluent.io/maven/"]])

@@ -13,37 +13,37 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.kafka.serializers.AbstractKafkaAvroDeserializer;
 
-import static com.slava.NativeAvroSerdeConfig.COM_SLAVA_CONVERSION_CLASS_CONFIG;
+import static com.slava.CljAvroSerdeConfig.COM_SLAVA_CONVERSION_CLASS_CONFIG;
 
-public class NativeAvroDeserializer extends AbstractKafkaAvroDeserializer implements Deserializer<Map> {
+public class CljAvroDeserializer extends AbstractKafkaAvroDeserializer implements Deserializer<Map> {
 
-    private Conversion conversion;
+    private ICljAvroTransformer transformer;
 
     /**
      * Constructor used by Kafka consumer.
      */
-    public NativeAvroDeserializer() {
+    public CljAvroDeserializer() {
 
     }
 
-    public NativeAvroDeserializer(SchemaRegistryClient client) {
+    public CljAvroDeserializer(SchemaRegistryClient client) {
         schemaRegistry = client;
     }
 
-    private void configure(Map<String, ?> configs) {
-        configure(deserializerConfig(configs));
-        NativeAvroSerdeConfig nativeConfig = new NativeAvroSerdeConfig(configs);
+    private void configure(Map<String, ?> config) {
+        configure(deserializerConfig(config));
+        CljAvroSerdeConfig transformerConfig = new CljAvroSerdeConfig(config);
 
-        Class<Conversion> conversionClass = (Class<Conversion>) nativeConfig.getClass(COM_SLAVA_CONVERSION_CLASS_CONFIG);
+        Class<ICljAvroTransformer> conversionClass = (Class<ICljAvroTransformer>) transformerConfig.getClass(COM_SLAVA_CONVERSION_CLASS_CONFIG);
         try {
-            conversion = conversionClass.getDeclaredConstructor().newInstance();
-            conversion.configure(nativeConfig);
+            transformer = conversionClass.getDeclaredConstructor().newInstance();
+            transformer.configure(transformerConfig);
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             e.printStackTrace();
         }
     }
 
-    public NativeAvroDeserializer(SchemaRegistryClient client, Map<String, ?> configs) {
+    public CljAvroDeserializer(SchemaRegistryClient client, Map<String, ?> configs) {
         schemaRegistry = client;
         configure(configs);
     }
@@ -77,6 +77,6 @@ public class NativeAvroDeserializer extends AbstractKafkaAvroDeserializer implem
      * Pass a reader schema to get an Avro projection
      */
     public Map deserialize(String topic, byte[] bytes, Schema readerSchema) {
-        return (Map) conversion.fromAvro(readerSchema, deserialize(bytes, readerSchema));
+        return (Map) transformer.fromAvroToClj(readerSchema, deserialize(bytes, readerSchema));
     }
 }

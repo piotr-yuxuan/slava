@@ -14,48 +14,48 @@ import io.confluent.kafka.serializers.AbstractKafkaAvroSerializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.kafka.serializers.subject.strategy.SubjectNameStrategy;
 
-import static com.slava.NativeAvroSerdeConfig.COM_SLAVA_CONVERSION_CLASS_CONFIG;
-import static com.slava.NativeAvroSerdeConfig.ORG_APACHE_AVRO_SCHEMA_KEY_CONFIG;
+import static com.slava.CljAvroSerdeConfig.COM_SLAVA_CONVERSION_CLASS_CONFIG;
+import static com.slava.CljAvroSerdeConfig.ORG_APACHE_AVRO_SCHEMA_KEY_CONFIG;
 
-public class NativeAvroSerializer extends AbstractKafkaAvroSerializer implements Serializer<Map> {
+public class CljAvroSerializer extends AbstractKafkaAvroSerializer implements Serializer<Map> {
     private Object nativeAvroSchemaKey;
     private boolean isKey;
     private KafkaAvroSerializer inner;
-    private Conversion conversion;
+    private ICljAvroTransformer transformer;
 
     /**
      * Constructor used by Kafka producer.
      */
-    public NativeAvroSerializer() {
+    public CljAvroSerializer() {
         inner = new KafkaAvroSerializer();
     }
 
-    public NativeAvroSerializer(SchemaRegistryClient client) {
+    public CljAvroSerializer(SchemaRegistryClient client) {
         schemaRegistry = client;
         inner = new KafkaAvroSerializer(client);
     }
 
-    private void configure(Map<String, ?> configs) {
-        configure(serializerConfig(configs));
-        NativeAvroSerdeConfig nativeConfig = new NativeAvroSerdeConfig(configs);
-        nativeAvroSchemaKey = nativeConfig.getString(ORG_APACHE_AVRO_SCHEMA_KEY_CONFIG);
+    private void configure(Map<String, ?> config) {
+        configure(serializerConfig(config));
+        CljAvroSerdeConfig transformerConfig = new CljAvroSerdeConfig(config);
+        nativeAvroSchemaKey = transformerConfig.getString(ORG_APACHE_AVRO_SCHEMA_KEY_CONFIG);
 
-        Class<Conversion> conversionClass = (Class<Conversion>) nativeConfig.getClass(COM_SLAVA_CONVERSION_CLASS_CONFIG);
+        Class<ICljAvroTransformer> transformerClass = (Class<ICljAvroTransformer>) transformerConfig.getClass(COM_SLAVA_CONVERSION_CLASS_CONFIG);
         try {
-            conversion = conversionClass.getDeclaredConstructor().newInstance();
-            conversion.configure(nativeConfig);
+            transformer = transformerClass.getDeclaredConstructor().newInstance();
+            transformer.configure(transformerConfig);
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             e.printStackTrace();
         }
     }
 
-    public NativeAvroSerializer(SchemaRegistryClient client, Map<String, ?> configs) {
+    public CljAvroSerializer(SchemaRegistryClient client, Map<String, ?> configs) {
         schemaRegistry = client;
         configure(configs);
         inner = new KafkaAvroSerializer(client, configs);
     }
 
-    public NativeAvroSerializer(SchemaRegistryClient client, Map<String, ?> configs, KafkaAvroSerializer serializer) {
+    public CljAvroSerializer(SchemaRegistryClient client, Map<String, ?> configs, KafkaAvroSerializer serializer) {
         schemaRegistry = client;
         configure(configs);
         inner = serializer;
@@ -78,7 +78,7 @@ public class NativeAvroSerializer extends AbstractKafkaAvroSerializer implements
     @Override
     public byte[] serialize(String topic, Map map) {
         Schema schema = getSchema(topic, map);
-        return inner.serialize(topic, conversion.toAvro(schema, map));
+        return inner.serialize(topic, transformer.fromCljToAvro(schema, map));
     }
 
     @Override

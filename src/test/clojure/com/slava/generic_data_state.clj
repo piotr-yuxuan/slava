@@ -1,7 +1,7 @@
 (ns com.slava.generic-data-state
   "Heavily depends on internal implementation and current JVM internals. Should not be used except for tests."
   (:require [clojure.test :refer :all]
-            [com.slava.conversion-native :as conversion-native])
+            [com.slava.clj<->avro :as conversion-native])
   (:import (org.apache.avro.generic GenericData)
            (java.lang.reflect Modifier Field)
            (java.util HashMap IdentityHashMap)

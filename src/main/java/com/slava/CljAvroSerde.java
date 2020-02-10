@@ -11,18 +11,18 @@ import java.util.Map;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 
 @InterfaceStability.Unstable
-public class NativeAvroSerde implements Serde<Map> {
+public class CljAvroSerde implements Serde<Map> {
     private final Serde<Map> inner;
 
-    public NativeAvroSerde() {
-        this.inner = Serdes.serdeFrom(new NativeAvroSerializer(), new NativeAvroDeserializer());
+    public CljAvroSerde() {
+        this.inner = Serdes.serdeFrom(new CljAvroSerializer(), new CljAvroDeserializer());
     }
 
-    public NativeAvroSerde(SchemaRegistryClient client) {
+    public CljAvroSerde(SchemaRegistryClient client) {
         if (client == null) {
             throw new IllegalArgumentException("schema registry client must not be null");
         } else {
-            this.inner = Serdes.serdeFrom(new NativeAvroSerializer(client), new NativeAvroDeserializer(client));
+            this.inner = Serdes.serdeFrom(new CljAvroSerializer(client), new CljAvroDeserializer(client));
         }
     }
 
@@ -34,9 +34,9 @@ public class NativeAvroSerde implements Serde<Map> {
         return this.inner.deserializer();
     }
 
-    public void configure(Map<String, ?> serdeConfig, boolean isSerdeForRecordKeys) {
-        this.inner.configure(serdeConfig, isSerdeForRecordKeys);
-        this.inner.configure(serdeConfig, isSerdeForRecordKeys);
+    public void configure(Map<String, ?> config, boolean isSerdeForRecordKeys) {
+        this.inner.configure(config, isSerdeForRecordKeys);
+        this.inner.configure(config, isSerdeForRecordKeys);
     }
 
     public void close() {

@@ -1,9 +1,10 @@
 (ns com.slava.readme-test
   (:require [clojure.test :refer :all]
-            [com.slava.conversion-native :as serde]
+            [com.slava.clj<->avro :as serde]
             [clojure.network.ip :as ip])
+  (:require [clojure.set :as clojure.set])
   (:import (org.apache.avro SchemaBuilder Schema)
-           (com.slava NativeAvroSerde NativeAvroSerdeConfig)
+           (com.slava CljAvroSerde CljAvroSerdeConfig)
            (org.apache.avro.generic GenericData$Fixed)
            (java.util Properties UUID)
            (org.apache.kafka.clients.producer ProducerRecord)
@@ -18,12 +19,12 @@
            (java.nio ByteBuffer)))
 
 (def ip-v4-schema (-> (SchemaBuilder/builder (str *ns*)) (.fixed "IPv4") (.size 4)))
-(defmethod serde/from-avro-schema-name (.getFullName ip-v4-schema) [this schema ^GenericData$Fixed data] (ip/make-ip-address (.array (serde/from-avro-schema-type this schema data))))
-(defmethod serde/to-avro-schema-name (.getFullName ip-v4-schema) [_ schema ^IPAddress ip-adress] (GenericData$Fixed. schema (.array (doto (ByteBuffer/allocate 4) (.putInt (.numeric_value ip-adress)) (.rewind)))))
+(defmethod serde/avro->clj-schema-name (.getFullName ip-v4-schema) [this schema ^GenericData$Fixed data] (ip/make-ip-address (.array (serde/avro->clj-schema-type this schema data))))
+(defmethod serde/clj->avro-schema-name (.getFullName ip-v4-schema) [_ schema ^IPAddress ip-adress] (GenericData$Fixed. schema (.array (doto (ByteBuffer/allocate 4) (.putInt (.numeric_value ip-adress)) (.rewind)))))
 
 (def ip-v6-schema (-> (SchemaBuilder/builder (str *ns*)) (.fixed "IPv6") (.size 16)))
-(defmethod serde/from-avro-schema-name (.getFullName ip-v6-schema) [this schema ^GenericData$Fixed data] (ip/make-ip-address (.array (serde/from-avro-schema-type this schema data))))
-(defmethod serde/to-avro-schema-name (.getFullName ip-v6-schema) [_ schema ^IPAddress ip-adress] (GenericData$Fixed. schema (.array (doto (ByteBuffer/allocate 16) (.putDouble (.numeric_value ip-adress)) (.rewind)))))
+(defmethod serde/avro->clj-schema-name (.getFullName ip-v6-schema) [this schema ^GenericData$Fixed data] (ip/make-ip-address (.array (serde/avro->clj-schema-type this schema data))))
+(defmethod serde/clj->avro-schema-name (.getFullName ip-v6-schema) [_ schema ^IPAddress ip-adress] (GenericData$Fixed. schema (.array (doto (ByteBuffer/allocate 16) (.putDouble (.numeric_value ip-adress)) (.rewind)))))
 
 (def ^String ip-array-input-topic "ip-array-input-topic")
 (def ^String ip-v4-output-topic "ip-v4-output-topic")
@@ -71,15 +72,15 @@
   (doto (Properties.)
     (.put AbstractKafkaAvroSerDeConfig/SCHEMA_REGISTRY_URL_CONFIG (.getUrl schema-registry))
     (.put StreamsConfig/DEFAULT_KEY_SERDE_CLASS_CONFIG (.getName Serdes$UUIDSerde))
-    (.put StreamsConfig/DEFAULT_VALUE_SERDE_CLASS_CONFIG (.getName NativeAvroSerde))
+    (.put StreamsConfig/DEFAULT_VALUE_SERDE_CLASS_CONFIG (.getName CljAvroSerde))
     (.put StreamsConfig/PROCESSING_GUARANTEE_CONFIG StreamsConfig/EXACTLY_ONCE)
     (.put StreamsConfig/BOOTSTRAP_SERVERS_CONFIG "kafka-broker-uri://")
     (.put StreamsConfig/APPLICATION_ID_CONFIG "app-id")
-    (.put NativeAvroSerdeConfig/COM_SLAVA_FIELD_NAME_CONVERSION_CONFIG (name :namespaced-keyword))))
+    (.put CljAvroSerdeConfig/COM_SLAVA_FIELD_NAME_CONVERSION_CONFIG (name :namespaced-keyword))))
 
 (def schema-registry-client (CachedSchemaRegistryClient. (.getUrl schema-registry) (int 1e2)))
 (def key-avro-serde (doto (Serdes$UUIDSerde.) (.configure properties (boolean :key))))
-(def value-avro-serde (doto (NativeAvroSerde. schema-registry-client) (.configure properties (boolean (not :key)))))
+(def value-avro-serde (doto (CljAvroSerde. schema-registry-client) (.configure properties (boolean (not :key)))))
 (def consumer-record-factory (ConsumerRecordFactory. (.serializer key-avro-serde) (.serializer value-avro-serde)))
 
 (deftest kafka-streams-integration-test

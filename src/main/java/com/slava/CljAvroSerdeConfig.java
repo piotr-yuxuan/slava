@@ -5,10 +5,10 @@ import java.util.Map;
 import io.confluent.common.config.ConfigDef;
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 
-public class NativeAvroSerdeConfig extends AbstractKafkaAvroSerDeConfig {
+public class CljAvroSerdeConfig extends AbstractKafkaAvroSerDeConfig {
 
     public static final String COM_SLAVA_CONVERSION_CLASS_CONFIG = "com.slava.conversion.class";
-    public static final String COM_SLAVA_CONVERSION_CLASS_STRATEGY_DEFAULT = "com.slava.ConversionNative";
+    public static final String COM_SLAVA_CONVERSION_CLASS_STRATEGY_DEFAULT = "com.slava.CljAvroTransformer";
     public static final String COM_SLAVA_CONVERSION_CLASS_STRATEGY_DOC = "TODO";
 
     public static final String COM_SLAVA_INCLUDE_SCHEMA_IN_MAP_CONFIG = "com.slava.include.schema.in.map";
@@ -31,14 +31,30 @@ public class NativeAvroSerdeConfig extends AbstractKafkaAvroSerDeConfig {
     public static final String COM_SLAVA_ENUM_CONVERSION_DEFAULT = "default";
     public static final String COM_SLAVA_ENUM_CONVERSION_DOC = "TODO";
 
-    private static ConfigDef config;
+    /**
+     * This attribute defines the configuration shape. It handles
+     * valid configuration value types and default. As such it is
+     * meant to be shared between all instances of CljAvroSerdeConfig,
+     * hence the `static`. It is not meant to be used outside of
+     * static code of this class, hence the `private`. It should be
+     * `final` but it can't because its value needs to be assigned in
+     * the static initializer.
+     *
+     * Clojure code can directly pass a map to clojure-land API.
+     *
+     * From a technical point of view this class is unnecessary: Java
+     * code could pass a raw Map instance which would be handled by
+     * clojure namespace internal logic. However I find it a good
+     * place to write documentation about config options.
+     */
+    private static ConfigDef configDefinition;
 
-    public NativeAvroSerdeConfig(Map<?, ?> props) {
-        super(config, props);
+    public CljAvroSerdeConfig(Map<?, ?> props) {
+        super(configDefinition, props);
     }
 
     static {
-        config = baseConfigDef()
+        configDefinition = baseConfigDef()
                 .define(COM_SLAVA_CONVERSION_CLASS_CONFIG,
                         ConfigDef.Type.CLASS,
                         COM_SLAVA_CONVERSION_CLASS_STRATEGY_DEFAULT,
