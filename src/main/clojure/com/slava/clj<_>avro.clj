@@ -197,15 +197,16 @@
     (vec (map #(clj->avro config element-type %) data))))
 
 (defmethod avro->clj-schema-type Schema$Type/MAP [config ^Schema$MapSchema schema data]
-  (let [m! (transient {})]
-    (doseq [[k v] data]
-      (assoc! m! (str k) (avro->clj config (.getValueType schema) v)))
-    (persistent! m!)))
+  (reduce (fn [acc [k v]]
+            (assoc acc (str k) (avro->clj config (.getValueType schema) v)))
+          {}
+          data))
 (defmethod clj->avro-schema-type Schema$Type/MAP [config ^Schema$MapSchema schema data]
-  (let [m! (LinkedHashMap.)]
-    (doseq [[k v] data]
-      (.put m! (str k) (clj->avro config (.getValueType schema) v)))
-    (Collections/unmodifiableMap m!)))
+  (Collections/unmodifiableMap
+    (reduce (fn [acc [k v]]
+              (assoc acc (str k) (clj->avro config (.getValueType schema) v)))
+            {}
+            data)))
 
 (defmethod avro->clj-schema-type Schema$Type/UNION [config ^Schema$UnionSchema schema data]
   (some (fn first-matching-type [schema]

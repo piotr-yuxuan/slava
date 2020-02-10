@@ -106,9 +106,9 @@
           data-map (assoc {} "field" field-value)
           data-record (.build (doto (GenericRecordBuilder. ^Schema schema)
                                 (.set "field" field-value)))]
+      (is (= (clj->avro config schema data-map) data-record))
       (testing "GenericAvroSerde doesn't preserve map order… meh…"
-        (is (= (clj->avro config schema data-map) data-record))
-        (comment (is (= data-record (generic-avro-serde-round-trip data-record))))
+        (comment (is (= data-record (generic-avro-serde-round-trip data-record)))) ;; this sometimes will fail
         (is (= (avro->clj config schema (clj->avro config schema data-map))
                (avro->clj config schema data-record)
                (avro->clj config schema (generic-avro-serde-round-trip data-record)))))
