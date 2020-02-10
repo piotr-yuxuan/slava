@@ -4,7 +4,7 @@
             [clojure.spec.gen.alpha :as gen]
             [com.slava.clj<->avro :refer :all]
             [com.slava.generic-specs :refer :all])
-  (:import (org.apache.avro SchemaBuilder SchemaBuilder$RecordBuilder SchemaBuilder$FieldAssembler Schema SchemaBuilder$ArrayDefault SchemaBuilder$MapDefault SchemaBuilder$UnionAccumulator LogicalTypes Schema$Type)
+  (:import (org.apache.avro SchemaBuilder SchemaBuilder$RecordBuilder SchemaBuilder$FieldAssembler Schema SchemaBuilder$ArrayDefault SchemaBuilder$MapDefault SchemaBuilder$UnionAccumulator LogicalTypes Schema$Type SchemaBuilder$FieldDefault SchemaBuilder$EnumBuilder SchemaBuilder$StringBldr SchemaBuilder$FixedBuilder SchemaBuilder$NamespacedBuilder)
            (io.confluent.kafka.schemaregistry.client MockSchemaRegistryClient)
            (io.confluent.kafka.streams.serdes.avro GenericAvroSerde)
            (org.apache.avro.generic GenericRecordBuilder GenericData$StringType GenericData$Record)
@@ -16,7 +16,7 @@
 (def topic "simple-string")
 (def config {AbstractKafkaAvroSerDeConfig/SCHEMA_REGISTRY_URL_CONFIG "mock://"})
 (def schema-registry (MockSchemaRegistryClient.))
-(def generic-avro-serde (doto (GenericAvroSerde. schema-registry) (.configure config (boolean (not :key)))))
+(def ^GenericAvroSerde generic-avro-serde (doto (GenericAvroSerde. schema-registry) (.configure config (boolean (not :key)))))
 
 (defn generic-avro-serde-round-trip [data]
   (->> data
@@ -41,7 +41,7 @@
                      #_() #_() ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
                      #_() #_() ^SchemaBuilder$FieldAssembler .fields
                      #_() #_() (.name "nestedField") .type .stringType (.stringDefault "default value")
-                     #_() #_() .endRecord
+                     #_() #_() ^SchemaBuilder$FieldDefault .endRecord
                      .noDefault
                      .endRecord)
           nested-field-value (gen/generate (s/gen (to-avro-string?)))
@@ -62,7 +62,8 @@
                      (.record "Enum")
                      ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
                      ^SchemaBuilder$FieldAssembler .fields
-                     (.name "field") .type (.enumeration "Suit") (.symbols (into-array String (map str (Suit/values)))) .noDefault
+                     (.name "field") .type (.enumeration "Suit") ^SchemaBuilder$FieldDefault (.symbols (into-array String (map str (Suit/values))))
+                     .noDefault
                      .endRecord)
           field-value (gen/generate (s/gen (->avro-enum? enum-schema)))
           data-map {"field" (str field-value)}
@@ -76,7 +77,7 @@
     (let [;; Pragmatic. However it would be better to defined "Nested" schema only one.
           enum-schema (-> (SchemaBuilder/builder)
                           (.enumeration "Suit")
-                          (.namespace "com.slava.test")
+                          ^SchemaBuilder$EnumBuilder (.namespace "com.slava.test")
                           (.symbols (into-array String (map str (Suit/values)))))
           schema (-> (SchemaBuilder/builder)
                      (.record "Array")
@@ -116,20 +117,20 @@
 (deftest union-conversion-test
   (testing "avro union"
     (let [schema (-> (SchemaBuilder/builder)
-                     (.record "Union")
+                     ^SchemaBuilder$NamespacedBuilder (.record "Union")
                      ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
                      ^SchemaBuilder$FieldAssembler .fields
                      (.name "field") .type .array
                      #_() .items .unionOf
-                     #_() #_() .nullType
-                     #_() #_() .and (.fixed "IPv4") (.namespace "com.slava.test") ^SchemaBuilder$UnionAccumulator (.size 4)
-                     #_() #_() .and (.fixed "IPv6") (.namespace "com.slava.test") ^SchemaBuilder$UnionAccumulator (.size 16)
+                     #_() #_() ^SchemaBuilder$UnionAccumulator .nullType
+                     #_() #_() .and ^SchemaBuilder$NamespacedBuilder (.fixed "IPv4") ^SchemaBuilder$FixedBuilder (.namespace "com.slava.test") ^SchemaBuilder$UnionAccumulator (.size 4)
+                     #_() #_() .and ^SchemaBuilder$NamespacedBuilder (.fixed "IPv6") ^SchemaBuilder$FixedBuilder (.namespace "com.slava.test") ^SchemaBuilder$UnionAccumulator (.size 16)
                      #_() #_() .and ^SchemaBuilder$UnionAccumulator .stringType
-                     .endUnion
+                     ^SchemaBuilder$FieldDefault .endUnion
                      .noDefault
                      .endRecord)
-          ipv4-schema (-> (SchemaBuilder/builder) (.fixed "IPv4") (.namespace "com.slava.test") (.size 4))
-          ipv6-schema (-> (SchemaBuilder/builder) (.fixed "IPv6") (.namespace "com.slava.test") (.size 16))
+          ipv4-schema (-> (SchemaBuilder/builder) (.fixed "IPv4") ^SchemaBuilder$FixedBuilder (.namespace "com.slava.test") (.size 4))
+          ipv6-schema (-> (SchemaBuilder/builder) (.fixed "IPv6") ^SchemaBuilder$FixedBuilder (.namespace "com.slava.test") (.size 16))
           field-value (gen/generate (s/gen (->avro-array? (->avro-union?
                                                             avro-null?
                                                             (->avro-fixed? ipv4-schema)
@@ -149,7 +150,7 @@
                      (.record "Fixed")
                      ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
                      ^SchemaBuilder$FieldAssembler .fields
-                     (.name "field") .type (.fixed "IPv6") (.namespace "com.slava.test") (.size 16) .noDefault
+                     (.name "field") .type (.fixed "IPv6") ^SchemaBuilder$FixedBuilder (.namespace "com.slava.test") ^SchemaBuilder$FieldDefault (.size 16) .noDefault
                      .endRecord)
           field-value (gen/generate (s/gen (->avro-fixed? (-> (SchemaBuilder/builder) (.fixed "IPv6") (.size 16)))))
           data-map {"field" (avro->clj config (-> (SchemaBuilder/builder) (.fixed "IPv6") (.size 16)) field-value)}
@@ -167,9 +168,9 @@
                      ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
                      ^SchemaBuilder$FieldAssembler .fields
                      (.name (str utf-8-avro-name "Default")) .type .stringType .noDefault ;; default stringType
-                     (.name (str utf-8-avro-name "Utf8")) .type .stringBuilder (.prop "avro.java.string" "Utf8") .endString .noDefault
-                     (.name (str utf-8-avro-name "CharSequence")) .type .stringBuilder (.prop "avro.java.string" "CharSequence") .endString .noDefault
-                     (.name (str utf-8-avro-name "String")) .type .stringBuilder (.prop "avro.java.string" "String") .endString .noDefault
+                     (.name (str utf-8-avro-name "Utf8")) .type .stringBuilder ^SchemaBuilder$StringBldr (.prop "avro.java.string" "Utf8") ^SchemaBuilder$FieldDefault .endString .noDefault
+                     (.name (str utf-8-avro-name "CharSequence")) .type .stringBuilder ^SchemaBuilder$StringBldr (.prop "avro.java.string" "CharSequence") ^SchemaBuilder$FieldDefault .endString .noDefault
+                     (.name (str utf-8-avro-name "String")) .type .stringBuilder ^SchemaBuilder$StringBldr (.prop "avro.java.string" "String") ^SchemaBuilder$FieldDefault .endString .noDefault
                      .endRecord)
           string-type-default (gen/generate (s/gen (to-avro-string?)))
           string-type-utf8 (gen/generate (s/gen (to-avro-string? GenericData$StringType/Utf8)))
@@ -322,7 +323,7 @@
                                 (.set "field" (clj->avro config decimal-schema field-value))))]
       (is (= (clj->avro config schema data-map) data-record (generic-avro-serde-round-trip data-record)))
       (is (= data-map (avro->clj config schema data-record)))
-      (.rewind (.get data-record "field")) ;; oh my God!
+      (.rewind ^ByteBuffer (.get data-record "field")) ;; oh my God!
       (is (= (type (get data-map "field"))
              (type (get (avro->clj config schema data-record) "field")))))))
 
@@ -461,7 +462,7 @@
                    #_() #_() ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
                    #_() #_() ^SchemaBuilder$FieldAssembler .fields
                    #_() #_() (.name "nestedField") .type .stringType (.stringDefault "default value")
-                   #_() #_() .endRecord
+                   #_() #_() ^SchemaBuilder$FieldDefault .endRecord
                    .noDefault
                    .endRecord)]
     (let [producer (clj->avro-record config schema)]

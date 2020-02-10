@@ -3,10 +3,10 @@
             [com.slava.clj<->avro :as serde]
             [clojure.network.ip :as ip])
   (:require [clojure.set :as clojure.set])
-  (:import (org.apache.avro SchemaBuilder Schema)
+  (:import (org.apache.avro SchemaBuilder Schema SchemaBuilder$FieldDefault SchemaBuilder$UnionAccumulator)
            (com.slava CljAvroSerde CljAvroSerdeConfig)
            (org.apache.avro.generic GenericData$Fixed)
-           (java.util Properties UUID)
+           (java.util Properties UUID List)
            (org.apache.kafka.clients.producer ProducerRecord)
            (org.apache.kafka.streams.kstream ValueMapper Predicate)
            (org.apache.kafka.streams StreamsBuilder TopologyTestDriver StreamsConfig)
@@ -14,17 +14,18 @@
            (io.confluent.kafka.serializers AbstractKafkaAvroSerDeConfig)
            (io.confluent.kafka.schemaregistry.client CachedSchemaRegistryClient)
            (org.apache.kafka.streams.test ConsumerRecordFactory)
-           (org.apache.kafka.common.serialization Serdes$UUIDSerde)
+           (org.apache.kafka.common.serialization Serdes$UUIDSerde Deserializer)
            (com.bakdata.schemaregistrymock SchemaRegistryMock)
-           (java.nio ByteBuffer)))
+           (java.nio ByteBuffer)
+           (org.apache.kafka.clients.consumer ConsumerRecord)))
 
-(def ip-v4-schema (-> (SchemaBuilder/builder (str *ns*)) (.fixed "IPv4") (.size 4)))
-(defmethod serde/avro->clj-schema-name (.getFullName ip-v4-schema) [this schema ^GenericData$Fixed data] (ip/make-ip-address (.array (serde/avro->clj-schema-type this schema data))))
-(defmethod serde/clj->avro-schema-name (.getFullName ip-v4-schema) [_ schema ^IPAddress ip-adress] (GenericData$Fixed. schema (.array (doto (ByteBuffer/allocate 4) (.putInt (.numeric_value ip-adress)) (.rewind)))))
+(def ^Schema ip-v4-schema (-> (SchemaBuilder/builder (str *ns*)) (.fixed "IPv4") (.size 4)))
+(defmethod serde/avro->clj-schema-name (.getFullName ip-v4-schema) [config ^Schema schema ^GenericData$Fixed data] (ip/make-ip-address (.array ^ByteBuffer (serde/avro->clj-schema-type config schema data))))
+(defmethod serde/clj->avro-schema-name (.getFullName ip-v4-schema) [_ ^Schema schema ^IPAddress ip-adress] (GenericData$Fixed. schema (.array ^ByteBuffer (doto (ByteBuffer/allocate 4) (.putInt (.numeric_value ip-adress)) (.rewind)))))
 
-(def ip-v6-schema (-> (SchemaBuilder/builder (str *ns*)) (.fixed "IPv6") (.size 16)))
-(defmethod serde/avro->clj-schema-name (.getFullName ip-v6-schema) [this schema ^GenericData$Fixed data] (ip/make-ip-address (.array (serde/avro->clj-schema-type this schema data))))
-(defmethod serde/clj->avro-schema-name (.getFullName ip-v6-schema) [_ schema ^IPAddress ip-adress] (GenericData$Fixed. schema (.array (doto (ByteBuffer/allocate 16) (.putDouble (.numeric_value ip-adress)) (.rewind)))))
+(def ^Schema ip-v6-schema (-> (SchemaBuilder/builder (str *ns*)) (.fixed "IPv6") (.size 16)))
+(defmethod serde/avro->clj-schema-name (.getFullName ip-v6-schema) [config ^Schema schema ^GenericData$Fixed data] (ip/make-ip-address (.array ^ByteBuffer (serde/avro->clj-schema-type config schema data))))
+(defmethod serde/clj->avro-schema-name (.getFullName ip-v6-schema) [_ ^Schema schema ^IPAddress ip-adress] (GenericData$Fixed. schema (.array ^ByteBuffer (doto (ByteBuffer/allocate 16) (.putDouble (.numeric_value ip-adress)) (.rewind)))))
 
 (def ^String ip-array-input-topic "ip-array-input-topic")
 (def ^String ip-v4-output-topic "ip-v4-output-topic")
@@ -33,7 +34,9 @@
   (-> (SchemaBuilder/builder (str *ns*))
       (.record "Input")
       .fields
-      (.name "array") .type .array .items .unionOf (.type ip-v4-schema) .and (.type ip-v6-schema) .endUnion .noDefault
+      (.name "array") .type .array .items .unionOf
+      ^SchemaBuilder$UnionAccumulator (.type ip-v4-schema) .and
+      ^SchemaBuilder$UnionAccumulator (.type ip-v6-schema) ^SchemaBuilder$FieldDefault .endUnion .noDefault
       .endRecord))
 
 (def ^Schema ip-v4-output-schema
@@ -43,7 +46,7 @@
       (.name "address") (.type ip-v4-schema) .noDefault
       .endRecord))
 
-(def schema-registry
+(def ^SchemaRegistryMock schema-registry
   (doto (SchemaRegistryMock.)
     (.start)
     (.registerValueSchema ip-array-input-topic ip-array-input-schema)
@@ -79,9 +82,9 @@
     (.put CljAvroSerdeConfig/COM_SLAVA_FIELD_NAME_CONVERSION_CONFIG (name :namespaced-keyword))))
 
 (def schema-registry-client (CachedSchemaRegistryClient. (.getUrl schema-registry) (int 1e2)))
-(def key-avro-serde (doto (Serdes$UUIDSerde.) (.configure properties (boolean :key))))
-(def value-avro-serde (doto (CljAvroSerde. schema-registry-client) (.configure properties (boolean (not :key)))))
-(def consumer-record-factory (ConsumerRecordFactory. (.serializer key-avro-serde) (.serializer value-avro-serde)))
+(def ^Serdes$UUIDSerde key-avro-serde (doto (Serdes$UUIDSerde.) (.configure properties (boolean :key))))
+(def ^CljAvroSerde value-avro-serde (doto (CljAvroSerde. schema-registry-client) (.configure properties (boolean (not :key)))))
+(def ^ConsumerRecordFactory consumer-record-factory (ConsumerRecordFactory. (.serializer key-avro-serde) (.serializer value-avro-serde)))
 
 (deftest kafka-streams-integration-test
   (with-open [^TopologyTestDriver test-driver (TopologyTestDriver. topology properties)]
@@ -91,9 +94,9 @@
                                                               (ip/make-ip-address "1::3")]}
                          {:com.slava.readme-test.Input/array [(ip/make-ip-address "192.168.1.2")
                                                               (ip/make-ip-address "192.168.1.3")]})]
-      (.pipeInput test-driver [(.create consumer-record-factory ip-array-input-topic (UUID/randomUUID) record)]))
+      (.pipeInput test-driver ^ConsumerRecord (.create consumer-record-factory ip-array-input-topic (UUID/randomUUID) record)))
     (is (= (for [^ProducerRecord record (take-while some? (repeatedly #(.readOutput test-driver ip-v4-output-topic)))]
-             (.deserialize (.deserializer value-avro-serde) ip-v4-output-topic (.value ^ProducerRecord record)))
+             (.deserialize ^Deserializer (.deserializer value-avro-serde) ip-v4-output-topic (.value ^ProducerRecord record)))
            (list {:com.slava.readme-test.Output/address (ip/make-ip-address "192.168.1.1")}
                  {:com.slava.readme-test.Output/address (ip/make-ip-address "192.168.1.2")}
                  {:com.slava.readme-test.Output/address (ip/make-ip-address "192.168.1.3")})))))

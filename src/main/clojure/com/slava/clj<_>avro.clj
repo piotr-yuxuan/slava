@@ -13,7 +13,7 @@
            (java.nio ByteBuffer)
            (org.apache.avro.data TimeConversions$DateConversion TimeConversions$TimeMicrosConversion TimeConversions$TimeMillisConversion TimeConversions$TimestampMicrosConversion TimeConversions$TimestampMillisConversion)
            (java.time Period)
-           (com.slava CljAvroSerdeConfig))
+           (com.slava CljAvroSerdeConfig CljAvroTransformer))
   (:gen-class :name com.slava.CljAvroTransformer
               :implements [com.slava.ICljAvroTransformer]
               :constructors {[] [], [java.util.Map] []}
@@ -35,7 +35,7 @@
       {:schema-key (keyword (.getString config CljAvroSerdeConfig/ORG_APACHE_AVRO_SCHEMA_KEY_CONFIG))})))
 
 (defn impl-configure
-  [config ^CljAvroSerdeConfig serde-config]
+  [^CljAvroTransformer config ^CljAvroSerdeConfig serde-config]
   (reset! (.config config) (config->map serde-config)))
 
 (declare avro->clj clj->avro)
@@ -94,26 +94,26 @@
       (clj->avro-schema-type config schema data)
       data))
 
-(defn impl-fromAvroToClj [this schema object] (avro->clj @(.config this) schema object))
-(defn impl-fromCljToAvro [this schema object] (clj->avro @(.config this) schema object))
+(defn impl-fromAvroToClj [^CljAvroTransformer this schema object] (avro->clj @(.config this) schema object))
+(defn impl-fromCljToAvro [^CljAvroTransformer this schema object] (clj->avro @(.config this) schema object))
 
 (defmulti avro->clj-field-name
   "" ;; TODO remove config
   {:arglists '([config ^Schema$RecordSchema schema ^Schema$Field field])}
   (fn [config ^Schema$RecordSchema schema ^Schema$Field field] (:field-name config)))
-(defmethod avro->clj-field-name :default [config schema field] (.name field))
-(defmethod avro->clj-field-name :keyword [config schema field] (keyword (.name field)))
-(defmethod avro->clj-field-name :namespaced-keyword [config schema field] (keyword (.getFullName schema) (.name field)))
+(defmethod avro->clj-field-name :default [config schema ^Schema$Field field] (.name field))
+(defmethod avro->clj-field-name :keyword [config schema ^Schema$Field field] (keyword (.name field)))
+(defmethod avro->clj-field-name :namespaced-keyword [config ^Schema schema ^Schema$Field field] (keyword (.getFullName schema) (.name field)))
 ;; TODO add other options to map keys and field names to handle some case conversions more easily.
 
 (defmulti avro->clj-map-key
   ""
   {:arglists '([config ^Schema$RecordSchema schema ^Schema$Field field ^String map-key])}
   (fn [config ^Schema$RecordSchema schema ^Schema$Field field ^String map-key] (:map-key config)))
-(defmethod avro->clj-map-key :default [config schema field map-key] (str map-key))
-(defmethod avro->clj-map-key :keyword [config schema field map-key] (keyword map-key))
-(defmethod avro->clj-map-key :namespaced-keyword [config schema field map-key] (keyword (str (.getFullName schema) "." (.name field)) map-key))
-(defmethod avro->clj-map-key :record-namespaced-keyword [config schema field map-key] (keyword (.getFullName schema) (str (.name field) "." map-key)))
+(defmethod avro->clj-map-key :default [config ^Schema schema ^Schema$Field field map-key] (str map-key))
+(defmethod avro->clj-map-key :keyword [config ^Schema schema ^Schema$Field field map-key] (keyword map-key))
+(defmethod avro->clj-map-key :namespaced-keyword [config ^Schema schema ^Schema$Field field map-key] (keyword (str (.getFullName schema) "." (.name field)) map-key))
+(defmethod avro->clj-map-key :record-namespaced-keyword [config ^Schema schema ^Schema$Field field map-key] (keyword (.getFullName schema) (str (.name field) "." map-key)))
 
 (defmulti avro->clj-enum-type
   ""
@@ -231,8 +231,8 @@
 ;;; Implementation of dispatch on logical types
 ;;;
 
-(def duration-logical-type (LogicalType. "duration"))
-(def duration-schema
+(def ^LogicalType duration-logical-type (LogicalType. "duration"))
+(def ^Schema duration-schema
   (.addToSchema duration-logical-type
                 (-> (SchemaBuilder/builder)
                     (.fixed "duration")
@@ -248,37 +248,30 @@
     (toFixed [value schema type] value)))
 
 (def logical-type-conversions
-  #{{:logical-type-name "decimal" :conversion (delay (Conversions$DecimalConversion.))}
-    {:logical-type-name "uuid" :conversion (delay (Conversions$UUIDConversion.))}
-    {:logical-type-name "date" :conversion (delay (TimeConversions$DateConversion.))}
-    {:logical-type-name "time-millis" :conversion (delay (TimeConversions$TimeMillisConversion.))}
-    {:logical-type-name "time-micros" :conversion (delay (TimeConversions$TimeMicrosConversion.))}
-    {:logical-type-name "timestamp-millis" :conversion (delay (TimeConversions$TimestampMillisConversion.))}
-    {:logical-type-name "timestamp-micros" :conversion (delay (TimeConversions$TimestampMicrosConversion.))}
-    {:logical-type-name "duration" :conversion (delay (duration-conversion))}})
+  #{{:logical-type-name "decimal" :conversion (Conversions$DecimalConversion.)}
+    {:logical-type-name "uuid" :conversion (Conversions$UUIDConversion.)}
+    {:logical-type-name "date" :conversion (TimeConversions$DateConversion.)}
+    {:logical-type-name "time-millis" :conversion (TimeConversions$TimeMillisConversion.)}
+    {:logical-type-name "time-micros" :conversion (TimeConversions$TimeMicrosConversion.)}
+    {:logical-type-name "timestamp-millis" :conversion (TimeConversions$TimestampMillisConversion.)}
+    {:logical-type-name "timestamp-micros" :conversion (TimeConversions$TimestampMicrosConversion.)}
+    {:logical-type-name "duration" :conversion (duration-conversion)}})
 
-;; I've got mixed feelings about this macro. On one hand it allows
-;; explicit case dispatch values on Enum, which is good. On the other
-;; hand, the best macro is the one which doesn't get written.
-(defmacro logical-type-implementation!
-  [logical-type-conversions]
-  `(doseq [{:keys [~'logical-type-name ~'conversion]} logical-type-conversions]
-     (defmethod avro->clj-logical-type ~'logical-type-name ~'[_ schema data]
-       (case (.ordinal (.getType ~'schema))
-         ~(.ordinal Schema$Type/FIXED) (.fromFixed @~'conversion ~'data ~'schema (.getLogicalType ~'schema))
-         ~(.ordinal Schema$Type/STRING) (.fromCharSequence @~'conversion ~'data ~'schema (.getLogicalType ~'schema))
-         ~(.ordinal Schema$Type/BYTES) (.fromBytes @~'conversion ~'data ~'schema (.getLogicalType ~'schema))
-         ~(.ordinal Schema$Type/INT) (.fromInt @~'conversion ~'data ~'schema (.getLogicalType ~'schema))
-         ~(.ordinal Schema$Type/LONG) (.fromLong @~'conversion ~'data ~'schema (.getLogicalType ~'schema))))
-     (defmethod clj->avro-logical-type ~'logical-type-name ~'[_ schema data]
-       (case (.ordinal (.getType ~'schema))
-         ~(.ordinal Schema$Type/FIXED) (.toFixed @~'conversion ~'data ~'schema (.getLogicalType ~'schema))
-         ~(.ordinal Schema$Type/STRING) (.toCharSequence @~'conversion ~'data ~'schema (.getLogicalType ~'schema))
-         ~(.ordinal Schema$Type/BYTES) (.toBytes @~'conversion ~'data ~'schema (.getLogicalType ~'schema))
-         ~(.ordinal Schema$Type/INT) (.toInt @~'conversion ~'data ~'schema (.getLogicalType ~'schema))
-         ~(.ordinal Schema$Type/LONG) (.toLong @~'conversion ~'data ~'schema (.getLogicalType ~'schema))))))
-
-(logical-type-implementation! logical-type-conversions)
+(doseq [{:keys [logical-type-name conversion]} logical-type-conversions]
+  (defmethod avro->clj-logical-type logical-type-name [_ ^Schema schema data]
+    (case (int (.ordinal (.getType schema)))
+      5 #_Fixed (.fromFixed ^Conversion conversion data schema (.getLogicalType schema))
+      6 #_String (.fromCharSequence ^Conversion conversion data schema (.getLogicalType schema))
+      7 #_Bytes (.fromBytes ^Conversion conversion data schema (.getLogicalType schema))
+      8 #_Int (.fromInt ^Conversion conversion data schema (.getLogicalType schema))
+      9 #_Long (.fromLong ^Conversion conversion data schema (.getLogicalType schema))))
+  (defmethod clj->avro-logical-type logical-type-name [_ ^Schema schema data]
+    (case (int (.ordinal (.getType schema)))
+      5 #_Fixed (.toFixed ^Conversion conversion data schema (.getLogicalType schema))
+      6 #_String (.toCharSequence ^Conversion conversion data schema (.getLogicalType schema))
+      7 #_Bytes (.toBytes ^Conversion conversion data schema (.getLogicalType schema))
+      8 #_Int (.toInt ^Conversion conversion data schema (.getLogicalType schema))
+      9 #_Long (.toLong ^Conversion conversion data schema (.getLogicalType schema)))))
 
 ;;;
 ;;; Implementation of dispatch on schema types
