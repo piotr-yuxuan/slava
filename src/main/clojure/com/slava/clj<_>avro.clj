@@ -14,7 +14,8 @@
            (java.nio ByteBuffer)
            (org.apache.avro.data TimeConversions$DateConversion TimeConversions$TimeMicrosConversion TimeConversions$TimeMillisConversion TimeConversions$TimestampMicrosConversion TimeConversions$TimestampMillisConversion)
            (java.time Period)
-           (com.slava CljAvroSerdeConfig CljAvroTransformer))
+           (com.slava CljAvroSerdeConfig CljAvroTransformer)
+           (clojure.lang Named))
   (:gen-class :name com.slava.CljAvroTransformer
               :implements [com.slava.ICljAvroTransformer]
               :constructors {[] [], [java.util.Map] []}
@@ -119,7 +120,7 @@
   {:arglists '([config ^Schema$RecordSchema schema ^String data])}
   (fn [config ^Schema$RecordSchema schema ^String data] (:map-key config)))
 (defmethod clj->avro-map-key :default [config ^Schema schema data] (str data))
-(defmethod clj->avro-map-key :keyword [config ^Schema schema data] (name data))
+(defmethod clj->avro-map-key :keyword [config ^Schema schema data] (if (instance? Named data) (name data) (str data)))
 
 (defmulti avro->clj-enum-type
   ""
@@ -233,6 +234,13 @@
   (GenericData$Fixed. schema (.array ^ByteBuffer data)))
 
 (defmethod avro->clj-schema-type Schema$Type/STRING [config ^Schema$FixedSchema schema data] (str data))
+
+(defmethod clj->avro-schema-type Schema$Type/INT [config ^Schema$FixedSchema schema data] (int data))
+(defmethod clj->avro-schema-type Schema$Type/LONG [config ^Schema$FixedSchema schema data] (long data))
+(defmethod clj->avro-schema-type Schema$Type/FLOAT [config ^Schema$FixedSchema schema data] (float data))
+(defmethod clj->avro-schema-type Schema$Type/DOUBLE [config ^Schema$FixedSchema schema data] (double data))
+(defmethod clj->avro-schema-type Schema$Type/BOOLEAN [config ^Schema$FixedSchema schema data] (boolean data))
+(defmethod clj->avro-schema-type Schema$Type/NULL [config ^Schema$FixedSchema schema data] nil)
 
 ;;;
 ;;; Implementation of dispatch on logical types
