@@ -7,6 +7,7 @@
   that you can introduce this library in some new code without
   changing too much. After all, it's newcomer' job to get used to its
   surroundings."
+  (:require [clojure.string :as str])
   (:import (org.apache.avro Schema Schema$Type Schema$FixedSchema Schema$UnionSchema Schema$MapSchema Schema$ArraySchema Schema$EnumSchema Schema$RecordSchema Schema$Field Conversions$DecimalConversion Conversions$UUIDConversion Conversion LogicalType SchemaBuilder)
            (java.util Collections LinkedHashMap)
            (org.apache.avro.generic GenericRecord GenericRecordBuilder GenericFixed GenericData$Fixed GenericData GenericData$EnumSymbol GenericData$Record)
@@ -108,12 +109,17 @@
 
 (defmulti avro->clj-map-key
   ""
-  {:arglists '([config ^Schema$RecordSchema schema ^Schema$Field field ^String map-key])}
-  (fn [config ^Schema$RecordSchema schema ^Schema$Field field ^String map-key] (:map-key config)))
-(defmethod avro->clj-map-key :default [config ^Schema schema ^Schema$Field field map-key] (str map-key))
-(defmethod avro->clj-map-key :keyword [config ^Schema schema ^Schema$Field field map-key] (keyword map-key))
-(defmethod avro->clj-map-key :namespaced-keyword [config ^Schema schema ^Schema$Field field map-key] (keyword (str (.getFullName schema) "." (.name field)) map-key))
-(defmethod avro->clj-map-key :record-namespaced-keyword [config ^Schema schema ^Schema$Field field map-key] (keyword (.getFullName schema) (str (.name field) "." map-key)))
+  {:arglists '([config ^Schema$RecordSchema schema ^String map-key])}
+  (fn [config ^Schema$RecordSchema schema ^String map-key] (:map-key config)))
+(defmethod avro->clj-map-key :default [config ^Schema schema map-key] (str map-key))
+(defmethod avro->clj-map-key :keyword [config ^Schema schema map-key] (keyword map-key))
+
+(defmulti clj->avro-map-key
+  ""
+  {:arglists '([config ^Schema$RecordSchema schema ^String data])}
+  (fn [config ^Schema$RecordSchema schema ^String data] (:map-key config)))
+(defmethod clj->avro-map-key :default [config ^Schema schema data] (str data))
+(defmethod clj->avro-map-key :keyword [config ^Schema schema data] (name data))
 
 (defmulti avro->clj-enum-type
   ""
@@ -198,13 +204,13 @@
 
 (defmethod avro->clj-schema-type Schema$Type/MAP [config ^Schema$MapSchema schema data]
   (reduce (fn [acc [k v]]
-            (assoc acc (str k) (avro->clj config (.getValueType schema) v)))
+            (assoc acc (avro->clj-map-key config schema k) (avro->clj config (.getValueType schema) v)))
           {}
           data))
 (defmethod clj->avro-schema-type Schema$Type/MAP [config ^Schema$MapSchema schema data]
   (Collections/unmodifiableMap
     (reduce (fn [acc [k v]]
-              (assoc acc (str k) (clj->avro config (.getValueType schema) v)))
+              (assoc acc (clj->avro-map-key config schema k) (clj->avro config (.getValueType schema) v)))
             {}
             data)))
 
