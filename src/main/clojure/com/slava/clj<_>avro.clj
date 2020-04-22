@@ -9,13 +9,14 @@
   surroundings."
   (:require [clojure.string :as str])
   (:import (org.apache.avro Schema Schema$Type Schema$FixedSchema Schema$UnionSchema Schema$MapSchema Schema$ArraySchema Schema$EnumSchema Schema$RecordSchema Schema$Field Conversions$DecimalConversion Conversions$UUIDConversion Conversion LogicalType SchemaBuilder)
-           (java.util Collections LinkedHashMap)
+           (java.util Collections Map List Collection)
            (org.apache.avro.generic GenericRecord GenericRecordBuilder GenericFixed GenericData$Fixed GenericData GenericData$EnumSymbol GenericData$Record)
            (java.nio ByteBuffer)
            (org.apache.avro.data TimeConversions$DateConversion TimeConversions$TimeMicrosConversion TimeConversions$TimeMillisConversion TimeConversions$TimestampMicrosConversion TimeConversions$TimestampMillisConversion)
            (java.time Period)
            (com.slava CljAvroSerdeConfig CljAvroTransformer)
-           (clojure.lang Named))
+           (clojure.lang Named)
+           (org.apache.avro.util Utf8))
   (:gen-class :name com.slava.CljAvroTransformer
               :implements [com.slava.ICljAvroTransformer]
               :constructors {[] [], [java.util.Map] []}
@@ -216,11 +217,34 @@
             data)))
 
 (defmethod avro->clj-schema-type Schema$Type/UNION [config ^Schema$UnionSchema schema data]
-  (some (fn first-matching-type [schema]
-          (try (avro->clj config schema data) (catch Exception _)))
-        (condp = (.getType schema)
-          Schema$Type/UNION (.getTypes schema)
-          Schema$Type/ARRAY (.getTypes (.getElementType schema)))))
+  (let [inner-types (condp = (.getType schema)
+                      Schema$Type/UNION (.getTypes schema)
+                      Schema$Type/ARRAY (.getTypes (.getElementType schema)))
+        inferred-types (cond (instance? Map data)
+                             (filter #(= Schema$Type/MAP (.getType ^Schema %))
+                                     inner-types)
+
+                             ;; https://stackoverflow.com/q/19850730
+                             (or (instance? Collection data)
+                                 (instance? List data))
+                             (filter #(= Schema$Type/ARRAY (.getType ^Schema %)) inner-types)
+                             ;; RECORD, ENUM, ARRAY, MAP, UNION, FIXED, STRING, BYTES, INT, LONG, FLOAT, DOUBLE, BOOLEAN, NULL;
+
+                             (instance? GenericData$EnumSymbol data)
+                             (filter #(= Schema$Type/ENUM (.getType ^Schema %)) inner-types)
+
+                             (or (string? data) (instance? Utf8 data))
+                             (filter #(= Schema$Type/STRING (.getType ^Schema %)) inner-types)
+
+                             (or (number? data))
+                             (filter #(contains? #{Schema$Type/INT Schema$Type/LONG Schema$Type/FLOAT Schema$Type/DOUBLE} (.getType ^Schema %)) inner-types)
+
+                             :else nil)]
+    (->> (or inferred-types inner-types)
+         (concat (filter #(= Schema$Type/UNION (.getType ^Schema %)) inner-types)
+                 (filter #(= Schema$Type/RECORD (.getType ^Schema %)) inner-types))
+         (some (fn tinder [schema] ;; needs a match desperately
+                 (try (avro->clj config schema data) (catch Exception _)))))))
 (defmethod clj->avro-schema-type Schema$Type/UNION [config ^Schema$UnionSchema schema data]
   (some (fn first-matching-type [schema]
           (try (clj->avro config schema data) (catch Exception _)))
