@@ -1,4 +1,4 @@
-(defproject slava "0.0.27"
+(defproject slava "0.0.28"
   :description "Infer specs from any Avro type"
   :url "https://cljdoc.org/d/com.slava/com.slava/0.0.24"
   :license {:name "GNU GPL v3+"
