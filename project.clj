@@ -5,8 +5,8 @@
             :url "http://www.gnu.org/licenses/gpl-3.0.en.html"
             :addendum "GPL_ADDITION.md"}
   :dependencies [[org.clojure/clojure "1.10.1"]
-                 [org.apache.avro/avro "1.9.1"]
-                 [io.confluent/kafka-avro-serializer "5.4.0"]
+                 [org.apache.avro/avro "1.9.2"]
+                 [io.confluent/kafka-avro-serializer "5.4.1"]
                  [camel-snake-kebab "0.4.1"]]
   :aot [com.slava.clj<->avro]
   :source-paths ["src/main/clojure"]
@@ -20,10 +20,10 @@
              :test {:java-source-paths ["src/main/java"
                                         "src/test/java"]
                     :dependencies [[org.apache.kafka/kafka_2.12 "5.3.1-ce"]
-                                   [io.confluent/kafka-streams-avro-serde "5.3.2"]
-                                   [org.clojure/test.check "0.10.0"]
-                                   [org.clojure/spec.alpha "0.2.176"]
-                                   [com.bakdata.fluent-kafka-streams-tests/schema-registry-mock "2.0.4"]
+                                   [io.confluent/kafka-streams-avro-serde "5.4.1"]
+                                   [org.clojure/test.check "1.0.0"]
+                                   [org.clojure/spec.alpha "0.2.187"]
+                                   [com.bakdata.fluent-kafka-streams-tests/schema-registry-mock "2.1.0"]
                                    [org.apache.kafka/kafka-streams-test-utils "5.3.1-ce"]
                                    [kovacnica/clojure.network.ip "0.1.3"]]}
              :precomp {:source-paths ["src/main/clojure"]
