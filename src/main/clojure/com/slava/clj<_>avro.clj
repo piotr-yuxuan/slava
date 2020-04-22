@@ -7,7 +7,8 @@
   that you can introduce this library in some new code without
   changing too much. After all, it's newcomer' job to get used to its
   surroundings."
-  (:require [clojure.string :as str])
+  (:require [clojure.string :as str]
+            [camel-snake-kebab.core :as csk])
   (:import (org.apache.avro Schema Schema$Type Schema$FixedSchema Schema$UnionSchema Schema$MapSchema Schema$ArraySchema Schema$EnumSchema Schema$RecordSchema Schema$Field Conversions$DecimalConversion Conversions$UUIDConversion Conversion LogicalType SchemaBuilder)
            (java.util Collections Map List Collection)
            (org.apache.avro.generic GenericRecord GenericRecordBuilder GenericFixed GenericData$Fixed GenericData GenericData$EnumSymbol GenericData$Record)
@@ -106,6 +107,7 @@
   (fn [config ^Schema$RecordSchema schema ^Schema$Field field] (:field-name config)))
 (defmethod avro->clj-field-name :default [config schema ^Schema$Field field] (.name field))
 (defmethod avro->clj-field-name :keyword [config schema ^Schema$Field field] (keyword (.name field)))
+(defmethod avro->clj-field-name :kebab-clj-keyword [config schema ^Schema$Field field] (csk/->kebab-case-keyword (.name field)))
 (defmethod avro->clj-field-name :namespaced-keyword [config ^Schema schema ^Schema$Field field] (keyword (.getFullName schema) (.name field)))
 ;; TODO add other options to map keys and field names to handle some case conversions more easily.
 
@@ -135,6 +137,8 @@
 (defmethod clj->avro-enum-type :default [config ^Schema$RecordSchema schema data] (GenericData$EnumSymbol. schema (str data)))
 (defmethod avro->clj-enum-type :keyword [config ^Schema$RecordSchema schema data] (keyword (str data)))
 (defmethod clj->avro-enum-type :keyword [config ^Schema$RecordSchema schema data] (GenericData$EnumSymbol. schema (name data)))
+(defmethod avro->clj-enum-type :kebab-clj-SCREAMING_SNAKE-avro-keyword [config ^Schema$RecordSchema schema data] (csk/->kebab-case-keyword (str data)))
+(defmethod clj->avro-enum-type :kebab-clj-SCREAMING_SNAKE-avro-keyword [config ^Schema$RecordSchema schema data] (GenericData$EnumSymbol. schema (csk/->SCREAMING_SNAKE_CASE_STRING (name data))))
 (defmethod avro->clj-enum-type :namespaced-keyword [config ^Schema$RecordSchema schema data] (keyword (.getFullName schema) (str data)))
 (defmethod clj->avro-enum-type :namespaced-keyword [config ^Schema$RecordSchema schema data] (GenericData$EnumSymbol. schema (name data)))
 (defmethod avro->clj-enum-type :enum [config ^Schema$RecordSchema schema data] (Enum/valueOf (Class/forName (.getFullName schema)) (str data))) ;; This will raise if no Enum is present

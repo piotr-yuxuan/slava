@@ -6,7 +6,8 @@
             :addendum "GPL_ADDITION.md"}
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [org.apache.avro/avro "1.9.1"]
-                 [io.confluent/kafka-avro-serializer "5.4.0"]]
+                 [io.confluent/kafka-avro-serializer "5.4.0"]
+                 [camel-snake-kebab "0.4.1"]]
   :aot [com.slava.clj<->avro]
   :source-paths ["src/main/clojure"]
   :java-source-paths ["src/main/java"]
