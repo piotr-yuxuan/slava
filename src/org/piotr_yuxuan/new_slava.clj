@@ -57,11 +57,30 @@
                (map #(- % 2) arities) ;; substract implicit &form and &env arguments
                arities))))))
 
+(def base-registry
+  {;; Base serialisers. At the bottom. Always applied.
+   :enum (fn [{:keys [enum-name]} ^Schema schema] (println :enum)
+           (if enum-name
+             (fn [value] (GenericData$EnumSymbol. schema (enum-name value)))
+             (fn [value] (GenericData$EnumSymbol. schema value))))
+   :union (fn [registry ^Schema schema] (println :union) nil)
+   :fixed (fn [registry ^Schema schema] (println :fixed) nil)
+   :string (fn [registry ^Schema schema] (println :string) (fn [value] (str value)))
+   :bytes (fn [registry ^Schema schema] (println :bytes) nil)
+   :int (fn [registry ^Schema schema] (println :int) (fn [value] (int value)))
+   :long (fn [registry ^Schema schema] (println :long) (fn [value] (long value)))
+   :float (fn [registry ^Schema schema] (println :float) (fn [value] (float value)))
+   :double (fn [registry ^Schema schema] (println :double) (fn [value] (double value)))
+   :boolean (fn [registry ^Schema schema] (println :boolean) (fn [value] (boolean value)))
+   :null (fn [registry ^Schema schema]
+           ;; no transformation, schema builder will throw an exception if value is not nil.
+           nil)})
+
 (defmacro compile-clj->avro
   "https://fs.blog/2020/03/chestertons-fence/"
   [registry ^Schema schema]
   (let [[builder m value compiler] (map gensym ["builder" "m" "value" "compiler"])
-        macro-registry (eval registry)
+        macro-registry (merge base-registry (eval registry))
         ^Schema macro-schema (eval schema)]
     (cond
       (= Schema$Type/RECORD (.getType macro-schema))
@@ -162,25 +181,7 @@
               (f macro-registry macro-schema)))))))
 
 (def clj->avro-registry
-  {;; Base serialisers. Always applied.
-   :enum (fn [{:keys [enum-name]} ^Schema schema] (println :enum)
-           (if enum-name
-             (fn [value] (GenericData$EnumSymbol. schema (enum-name value)))
-             (fn [value] (GenericData$EnumSymbol. schema value))))
-   :union (fn [registry ^Schema schema] (println :union) nil)
-   :fixed (fn [registry ^Schema schema] (println :fixed) nil)
-   :string (fn [registry ^Schema schema] (println :string) (fn [value] (str value)))
-   :bytes (fn [registry ^Schema schema] (println :bytes) nil)
-   :int (fn [registry ^Schema schema] (println :int) (fn [value] (int value)))
-   :long (fn [registry ^Schema schema] (println :long) (fn [value] (long value)))
-   :float (fn [registry ^Schema schema] (println :float) (fn [value] (float value)))
-   :double (fn [registry ^Schema schema] (println :double) (fn [value] (double value)))
-   :boolean (fn [registry ^Schema schema] (println :boolean) (fn [value] (boolean value)))
-   :null (fn [registry ^Schema schema]
-           ;; no transformation, schema builder will throw an exception if value is not nil.
-           nil)
-   ;; Custom configuration keys
-   :enum-name csk/->SCREAMING_SNAKE_CASE_STRING
+  {:enum-name csk/->SCREAMING_SNAKE_CASE_STRING
    :field-name csk/->kebab-case-keyword
    :nil-as-absent? false
    ;; Custom serialisers. Applied before base serialisers.
@@ -207,3 +208,76 @@
 (nested-compiled
   {:simple-field "value for simple-field"
    :other-field "value for other-field"})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
