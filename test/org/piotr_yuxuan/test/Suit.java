@@ -1,4 +1,4 @@
-package com.slava.test;
+package org.piotr_yuxuan.test;
 
 public enum Suit {
     SPADES,

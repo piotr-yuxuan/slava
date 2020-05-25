@@ -1,4 +1,4 @@
-(ns com.slava.clj<->avro
+(ns org.piotr-yuxuan.slava
   "TODO: bigger, very simple and detailed documentation.
 
   I acknowledge and pead guilty for the current ugliness of code.
@@ -7,44 +7,18 @@
   that you can introduce this library in some new code without
   changing too much. After all, it's newcomer' job to get used to its
   surroundings."
-  (:require [clojure.string :as str]
-            [camel-snake-kebab.core :as csk])
-  (:import (org.apache.avro Schema Schema$Type Schema$FixedSchema Schema$UnionSchema Schema$MapSchema Schema$ArraySchema Schema$EnumSchema Schema$RecordSchema Schema$Field Conversions$DecimalConversion Conversions$UUIDConversion Conversion LogicalType SchemaBuilder)
+  (:require [camel-snake-kebab.core :as csk])
+  (:import (org.apache.avro Schema Schema$Type Schema$FixedSchema Schema$UnionSchema Schema$MapSchema Schema$ArraySchema Schema$EnumSchema Schema$RecordSchema Schema$Field Conversions$DecimalConversion Conversions$UUIDConversion Conversion LogicalType SchemaBuilder SchemaBuilder$RecordBuilder SchemaBuilder$FieldAssembler SchemaBuilder$FieldDefault)
            (java.util Collections Map List Collection)
            (org.apache.avro.generic GenericRecord GenericRecordBuilder GenericFixed GenericData$Fixed GenericData GenericData$EnumSymbol GenericData$Record)
            (java.nio ByteBuffer)
            (org.apache.avro.data TimeConversions$DateConversion TimeConversions$TimeMicrosConversion TimeConversions$TimeMillisConversion TimeConversions$TimestampMicrosConversion TimeConversions$TimestampMillisConversion)
            (java.time Period)
-           (com.slava CljAvroSerdeConfig CljAvroTransformer)
            (clojure.lang Named)
-           (org.apache.avro.util Utf8))
-  (:gen-class :name com.slava.CljAvroTransformer
-              :implements [com.slava.ICljAvroTransformer]
-              :constructors {[] [], [java.util.Map] []}
-              :init init
-              :state config
-              :prefix "impl-"))
-
-(defn impl-init
-  ([] [[] (atom {})])
-  ;; Used for tests
-  ([m] [[] (atom m)]))
-
-(defn config->map [^CljAvroSerdeConfig config]
-  (merge
-    {:field-name (keyword (.getString config CljAvroSerdeConfig/COM_SLAVA_FIELD_NAME_CONVERSION_CONFIG))
-     :map-key (keyword (.getString config CljAvroSerdeConfig/COM_SLAVA_MAP_KEY_CONVERSION_CONFIG))
-     :enum-type (keyword (.getString config CljAvroSerdeConfig/COM_SLAVA_ENUM_CONVERSION_CONFIG))}
-    (when (.getBoolean config CljAvroSerdeConfig/COM_SLAVA_INCLUDE_SCHEMA_IN_MAP_CONFIG)
-      {:schema-key (keyword (.getString config CljAvroSerdeConfig/ORG_APACHE_AVRO_SCHEMA_KEY_CONFIG))})))
-
-(defn impl-configure
-  [^CljAvroTransformer config ^CljAvroSerdeConfig serde-config]
-  (reset! (.config config) (config->map serde-config)))
+           (org.apache.avro.util Utf8)))
 
 (declare avro->clj clj->avro)
 
-;; simplify signature
 (defn dispatch-schema-name [^Schema schema] (.getFullName schema))
 (defmulti avro->clj-schema-name
   ""
@@ -98,8 +72,8 @@
       (clj->avro-schema-type config schema data)
       data))
 
-(defn impl-fromAvroToClj [^CljAvroTransformer this schema object] (avro->clj @(.config this) schema object))
-(defn impl-fromCljToAvro [^CljAvroTransformer this schema object] (clj->avro @(.config this) schema object))
+(defn impl-fromAvroToClj [^ISlava this schema object] (avro->clj @(.config this) schema object))
+(defn impl-fromCljToAvro [^ISlava this schema object] (clj->avro @(.config this) schema object))
 
 (defmulti avro->clj-field-name
   "" ;; TODO remove config

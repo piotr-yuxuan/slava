@@ -1,16 +1,16 @@
-(ns com.slava.conversion-native-test
+(ns org.piotr-yuxuan.conversion-native-test
   (:require [clojure.test :refer :all]
             [clojure.spec.alpha :as s]
             [clojure.spec.gen.alpha :as gen]
-            [com.slava.clj<->avro :refer :all]
-            [com.slava.generic-specs :refer :all])
-  (:import (org.apache.avro SchemaBuilder SchemaBuilder$RecordBuilder SchemaBuilder$FieldAssembler Schema SchemaBuilder$ArrayDefault SchemaBuilder$MapDefault SchemaBuilder$UnionAccumulator LogicalTypes Schema$Type SchemaBuilder$FieldDefault SchemaBuilder$EnumBuilder SchemaBuilder$StringBldr SchemaBuilder$FixedBuilder SchemaBuilder$NamespacedBuilder AvroMissingFieldException)
+            [org.piotr-yuxuan.clj<->avro :refer :all]
+            [org.piotr-yuxuan.generic-specs :refer :all])
+  (:import (org.apache.avro SchemaBuilder SchemaBuilder$RecordBuilder SchemaBuilder$FieldAssembler Schema SchemaBuilder$ArrayDefault SchemaBuilder$MapDefault SchemaBuilder$UnionAccumulator LogicalTypes Schema$Type SchemaBuilder$FieldDefault SchemaBuilder$EnumBuilder SchemaBuilder$StringBldr SchemaBuilder$FixedBuilder SchemaBuilder$NamespacedBuilder)
            (io.confluent.kafka.schemaregistry.client MockSchemaRegistryClient)
            (io.confluent.kafka.streams.serdes.avro GenericAvroSerde)
            (org.apache.avro.generic GenericRecordBuilder GenericData$StringType GenericData$Record)
            (java.nio ByteBuffer)
            (org.apache.kafka.common.serialization Serializer Deserializer)
-           (com.slava.test Suit)
+           (org.piotr_yuxuan.test Suit)
            (io.confluent.kafka.serializers AbstractKafkaAvroSerDeConfig)))
 
 (def topic "simple-string")
@@ -28,17 +28,17 @@
     (let [;; Pragmatic. However it would be better to defined "Nested" schema only one.
           nested-schema (-> (SchemaBuilder/builder)
                             (.record "Nested")
-                            ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                            ^SchemaBuilder$RecordBuilder (.namespace "org.piotr-yuxuan.test")
                             ^SchemaBuilder$FieldAssembler .fields
                             (.name "nestedField") .type .stringType (.stringDefault "default value")
                             .endRecord)
           schema (-> (SchemaBuilder/builder)
                      (.record "Record")
-                     ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                     ^SchemaBuilder$RecordBuilder (.namespace "org.piotr-yuxuan.test")
                      ^SchemaBuilder$FieldAssembler .fields
                      (.name "field") .type
                      #_() #_() (.record "Nested")
-                     #_() #_() ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                     #_() #_() ^SchemaBuilder$RecordBuilder (.namespace "org.piotr-yuxuan.test")
                      #_() #_() ^SchemaBuilder$FieldAssembler .fields
                      #_() #_() (.name "nestedField") .type .stringType (.stringDefault "default value")
                      #_() #_() ^SchemaBuilder$FieldDefault .endRecord
@@ -60,7 +60,7 @@
                           (.symbols (into-array String (map str (Suit/values)))))
           schema (-> (SchemaBuilder/builder)
                      (.record "Enum")
-                     ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                     ^SchemaBuilder$RecordBuilder (.namespace "org.piotr-yuxuan.test")
                      ^SchemaBuilder$FieldAssembler .fields
                      (.name "field") .type (.enumeration "Suit") ^SchemaBuilder$FieldDefault (.symbols (into-array String (map str (Suit/values))))
                      .noDefault
@@ -77,11 +77,11 @@
     (let [;; Pragmatic. However it would be better to defined "Nested" schema only one.
           enum-schema (-> (SchemaBuilder/builder)
                           (.enumeration "Suit")
-                          ^SchemaBuilder$EnumBuilder (.namespace "com.slava.test")
+                          ^SchemaBuilder$EnumBuilder (.namespace "org.piotr-yuxuan.test")
                           (.symbols (into-array String (map str (Suit/values)))))
           schema (-> (SchemaBuilder/builder)
                      (.record "Array")
-                     ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                     ^SchemaBuilder$RecordBuilder (.namespace "org.piotr-yuxuan.test")
                      ^SchemaBuilder$FieldAssembler .fields
                      (.name "field") .type .array ^SchemaBuilder$ArrayDefault (.items enum-schema)
                      (.arrayDefault (take 1 (gen/generate (s/gen (->avro-array? (->avro-enum? enum-schema))))))
@@ -97,7 +97,7 @@
   (testing "avro maps"
     (let [schema (-> (SchemaBuilder/builder)
                      (.record "Map")
-                     ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                     ^SchemaBuilder$RecordBuilder (.namespace "org.piotr-yuxuan.test")
                      ^SchemaBuilder$FieldAssembler .fields
                      (.name "field") .type .map .values ^SchemaBuilder$MapDefault .stringType
                      (.mapDefault {"default singleton map key" "🚀"})
@@ -118,19 +118,19 @@
   (testing "avro union"
     (let [schema (-> (SchemaBuilder/builder)
                      ^SchemaBuilder$NamespacedBuilder (.record "Union")
-                     ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                     ^SchemaBuilder$RecordBuilder (.namespace "org.piotr-yuxuan.test")
                      ^SchemaBuilder$FieldAssembler .fields
                      (.name "field") .type .array
                      #_() .items .unionOf
                      #_() #_() ^SchemaBuilder$UnionAccumulator .nullType
-                     #_() #_() .and ^SchemaBuilder$NamespacedBuilder (.fixed "IPv4") ^SchemaBuilder$FixedBuilder (.namespace "com.slava.test") ^SchemaBuilder$UnionAccumulator (.size 4)
-                     #_() #_() .and ^SchemaBuilder$NamespacedBuilder (.fixed "IPv6") ^SchemaBuilder$FixedBuilder (.namespace "com.slava.test") ^SchemaBuilder$UnionAccumulator (.size 16)
+                     #_() #_() .and ^SchemaBuilder$NamespacedBuilder (.fixed "IPv4") ^SchemaBuilder$FixedBuilder (.namespace "org.piotr-yuxuan.test") ^SchemaBuilder$UnionAccumulator (.size 4)
+                     #_() #_() .and ^SchemaBuilder$NamespacedBuilder (.fixed "IPv6") ^SchemaBuilder$FixedBuilder (.namespace "org.piotr-yuxuan.test") ^SchemaBuilder$UnionAccumulator (.size 16)
                      #_() #_() .and ^SchemaBuilder$UnionAccumulator .stringType
                      ^SchemaBuilder$FieldDefault .endUnion
                      .noDefault
                      .endRecord)
-          ipv4-schema (-> (SchemaBuilder/builder) (.fixed "IPv4") ^SchemaBuilder$FixedBuilder (.namespace "com.slava.test") (.size 4))
-          ipv6-schema (-> (SchemaBuilder/builder) (.fixed "IPv6") ^SchemaBuilder$FixedBuilder (.namespace "com.slava.test") (.size 16))
+          ipv4-schema (-> (SchemaBuilder/builder) (.fixed "IPv4") ^SchemaBuilder$FixedBuilder (.namespace "org.piotr-yuxuan.test") (.size 4))
+          ipv6-schema (-> (SchemaBuilder/builder) (.fixed "IPv6") ^SchemaBuilder$FixedBuilder (.namespace "org.piotr-yuxuan.test") (.size 16))
           field-value (gen/generate (s/gen (->avro-array? (->avro-union?
                                                             avro-null?
                                                             (->avro-fixed? ipv4-schema)
@@ -148,9 +148,9 @@
   (testing "avro fixed"
     (let [schema (-> (SchemaBuilder/builder)
                      (.record "Fixed")
-                     ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                     ^SchemaBuilder$RecordBuilder (.namespace "org.piotr-yuxuan.test")
                      ^SchemaBuilder$FieldAssembler .fields
-                     (.name "field") .type (.fixed "IPv6") ^SchemaBuilder$FixedBuilder (.namespace "com.slava.test") ^SchemaBuilder$FieldDefault (.size 16) .noDefault
+                     (.name "field") .type (.fixed "IPv6") ^SchemaBuilder$FixedBuilder (.namespace "org.piotr-yuxuan.test") ^SchemaBuilder$FieldDefault (.size 16) .noDefault
                      .endRecord)
           field-value (gen/generate (s/gen (->avro-fixed? (-> (SchemaBuilder/builder) (.fixed "IPv6") (.size 16)))))
           data-map {"field" (avro->clj config (-> (SchemaBuilder/builder) (.fixed "IPv6") (.size 16)) field-value)}
@@ -165,7 +165,7 @@
           utf-8-avro-string "_çœ_ɵθɤɣʃʄ_ˈʕ_cA_sعَرَبِيّ\u200Ee_æAe_胡雨軒_Петр👍🚀"
           schema (-> (SchemaBuilder/builder)
                      (.record "String")
-                     ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                     ^SchemaBuilder$RecordBuilder (.namespace "org.piotr-yuxuan.test")
                      ^SchemaBuilder$FieldAssembler .fields
                      (.name (str utf-8-avro-name "Default")) .type .stringType .noDefault ;; default stringType
                      (.name (str utf-8-avro-name "Utf8")) .type .stringBuilder ^SchemaBuilder$StringBldr (.prop "avro.java.string" "Utf8") ^SchemaBuilder$FieldDefault .endString .noDefault
@@ -192,7 +192,7 @@
   (testing "avro bytes, sequence of 8-bit unsigned bytes"
     (let [schema (-> (SchemaBuilder/builder)
                      (.record "Bytes")
-                     ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                     ^SchemaBuilder$RecordBuilder (.namespace "org.piotr-yuxuan.test")
                      ^SchemaBuilder$FieldAssembler .fields
                      (.name "field") .type .bytesType .noDefault
                      .endRecord)
@@ -211,7 +211,7 @@
   (testing "avro int, 32-bit signed integer"
     (let [schema (-> (SchemaBuilder/builder)
                      (.record "Int")
-                     ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                     ^SchemaBuilder$RecordBuilder (.namespace "org.piotr-yuxuan.test")
                      ^SchemaBuilder$FieldAssembler .fields
                      (.name "field") .type .intType .noDefault
                      .endRecord)
@@ -228,7 +228,7 @@
   (testing "avro long, 64-bit signed integer"
     (let [schema (-> (SchemaBuilder/builder)
                      (.record "Long")
-                     ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                     ^SchemaBuilder$RecordBuilder (.namespace "org.piotr-yuxuan.test")
                      ^SchemaBuilder$FieldAssembler .fields
                      (.name "field") .type .longType .noDefault
                      .endRecord)
@@ -245,7 +245,7 @@
   (testing "avro float, single precision (32-bit) IEEE 754 floating-point number"
     (let [schema (-> (SchemaBuilder/builder)
                      (.record "Float")
-                     ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                     ^SchemaBuilder$RecordBuilder (.namespace "org.piotr-yuxuan.test")
                      ^SchemaBuilder$FieldAssembler .fields
                      (.name "field") .type .floatType .noDefault
                      .endRecord)
@@ -262,7 +262,7 @@
   (testing "avro double, double precision (64-bit) IEEE 754 floating-point number"
     (let [schema (-> (SchemaBuilder/builder)
                      (.record "Double")
-                     ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                     ^SchemaBuilder$RecordBuilder (.namespace "org.piotr-yuxuan.test")
                      ^SchemaBuilder$FieldAssembler .fields
                      (.name "field") .type .doubleType .noDefault
                      .endRecord)
@@ -279,7 +279,7 @@
   (testing "avro boolean, a binary value"
     (let [schema (-> (SchemaBuilder/builder)
                      (.record "Boolean")
-                     ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                     ^SchemaBuilder$RecordBuilder (.namespace "org.piotr-yuxuan.test")
                      ^SchemaBuilder$FieldAssembler .fields
                      (.name "field") .type .booleanType .noDefault
                      .endRecord)
@@ -294,7 +294,7 @@
   (testing "avro null, no value"
     (let [schema (-> (SchemaBuilder/builder)
                      (.record "Null")
-                     ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                     ^SchemaBuilder$RecordBuilder (.namespace "org.piotr-yuxuan.test")
                      ^SchemaBuilder$FieldAssembler .fields
                      (.name "field") .type .nullType .noDefault
                      .endRecord)
@@ -313,7 +313,7 @@
                              (.addToSchema (Schema/create Schema$Type/BYTES)))
           schema (-> (SchemaBuilder/builder)
                      (.record "Uuid")
-                     ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                     ^SchemaBuilder$RecordBuilder (.namespace "org.piotr-yuxuan.test")
                      ^SchemaBuilder$FieldAssembler .fields
                      (.name "field") (.type decimal-schema) .noDefault
                      .endRecord)
@@ -332,7 +332,7 @@
     (let [uuid-schema (-> (LogicalTypes/uuid) (.addToSchema (Schema/create Schema$Type/STRING)))
           schema (-> (SchemaBuilder/builder)
                      (.record "Uuid")
-                     ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                     ^SchemaBuilder$RecordBuilder (.namespace "org.piotr-yuxuan.test")
                      ^SchemaBuilder$FieldAssembler .fields
                      (.name "field") (.type uuid-schema) .noDefault
                      .endRecord)
@@ -350,7 +350,7 @@
     (let [date-schema (-> (LogicalTypes/date) (.addToSchema (Schema/create Schema$Type/INT)))
           schema (-> (SchemaBuilder/builder)
                      (.record "Date")
-                     ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                     ^SchemaBuilder$RecordBuilder (.namespace "org.piotr-yuxuan.test")
                      ^SchemaBuilder$FieldAssembler .fields
                      (.name "field") (.type date-schema) .noDefault
                      .endRecord)
@@ -368,7 +368,7 @@
     (let [time-millis-schema (-> (LogicalTypes/timeMillis) (.addToSchema (Schema/create Schema$Type/INT)))
           schema (-> (SchemaBuilder/builder)
                      (.record "TimeMillis")
-                     ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                     ^SchemaBuilder$RecordBuilder (.namespace "org.piotr-yuxuan.test")
                      ^SchemaBuilder$FieldAssembler .fields
                      (.name "field") (.type time-millis-schema) .noDefault
                      .endRecord)
@@ -386,7 +386,7 @@
     (let [time-micros-schema (-> (LogicalTypes/timeMicros) (.addToSchema (Schema/create Schema$Type/LONG)))
           schema (-> (SchemaBuilder/builder)
                      (.record "TimeMicros")
-                     ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                     ^SchemaBuilder$RecordBuilder (.namespace "org.piotr-yuxuan.test")
                      ^SchemaBuilder$FieldAssembler .fields
                      (.name "field") (.type time-micros-schema) .noDefault
                      .endRecord)
@@ -404,7 +404,7 @@
     (let [timestamp-millis-schema (-> (LogicalTypes/timestampMillis) (.addToSchema (Schema/create Schema$Type/LONG)))
           schema (-> (SchemaBuilder/builder)
                      (.record "TimestampMicros")
-                     ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                     ^SchemaBuilder$RecordBuilder (.namespace "org.piotr-yuxuan.test")
                      ^SchemaBuilder$FieldAssembler .fields
                      (.name "field") (.type timestamp-millis-schema) .noDefault
                      .endRecord)
@@ -422,7 +422,7 @@
     (let [timestamp-micros-schema (-> (LogicalTypes/timestampMicros) (.addToSchema (Schema/create Schema$Type/LONG)))
           schema (-> (SchemaBuilder/builder)
                      (.record "TimestampMicros")
-                     ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                     ^SchemaBuilder$RecordBuilder (.namespace "org.piotr-yuxuan.test")
                      ^SchemaBuilder$FieldAssembler .fields
                      (.name "field") (.type timestamp-micros-schema) .noDefault
                      .endRecord)
@@ -439,7 +439,7 @@
   (testing "duration logical type"
     (let [schema (-> (SchemaBuilder/builder)
                      (.record "Duration")
-                     ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                     ^SchemaBuilder$RecordBuilder (.namespace "org.piotr-yuxuan.test")
                      ^SchemaBuilder$FieldAssembler .fields
                      (.name "field") (.type duration-schema) .noDefault
                      .endRecord)
@@ -455,11 +455,11 @@
 (deftest record-producer-test
   (let [schema (-> (SchemaBuilder/builder)
                    (.record "Record")
-                   ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                   ^SchemaBuilder$RecordBuilder (.namespace "org.piotr-yuxuan.test")
                    ^SchemaBuilder$FieldAssembler .fields
                    (.name "field") .type
                    #_() #_() (.record "Nested")
-                   #_() #_() ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+                   #_() #_() ^SchemaBuilder$RecordBuilder (.namespace "org.piotr-yuxuan.test")
                    #_() #_() ^SchemaBuilder$FieldAssembler .fields
                    #_() #_() (.name "nestedField") .type .stringType (.stringDefault "default value")
                    #_() #_() ^SchemaBuilder$FieldDefault .endRecord
@@ -467,10 +467,7 @@
                    .endRecord)]
     (let [producer (clj->avro-record config schema)]
       (is (= "paris" (-> ^GenericData$Record (producer {"field" {"nestedField" "paris"}}) ^GenericData$Record (.get "field") (.get "nestedField"))))
-      (is (= ::exception-fired
-             (try (-> ^GenericData$Record (producer {"field" {"nestedField" nil}}) ^GenericData$Record (.get "field") (.get "nestedField"))
-                  (catch java.lang.AssertionError _
-                    ::exception-fired))))
+      (is (= nil (-> ^GenericData$Record (producer {"field" {"nestedField" nil}}) ^GenericData$Record (.get "field") (.get "nestedField")))) ;; won't get serialised
       (is (= "default value" (-> ^GenericData$Record (producer {"field" {}}) ^GenericData$Record (.get "field") (.get "nestedField") str))))
     (let [producer (clj->avro-record config schema {"field" {"nestedField" "hurray"}})]
       (is (= "london" (-> ^GenericData$Record (producer {"field" {"nestedField" "london"}}) ^GenericData$Record (.get "field") (.get "nestedField"))))
@@ -482,137 +479,3 @@
         (is (= "london" (-> ^GenericData$Record (producer {:field {:nestedField "london"}}) ^GenericData$Record (.get "field") (.get "nestedField"))))
         (is (= "default value" (-> ^GenericData$Record (producer {:field {}}) ^GenericData$Record (.get "field") (.get "nestedField") str)))
         (is (= "hurray" (-> ^GenericData$Record (producer {}) ^GenericData$Record (.get "field") (.get "nestedField"))))))))
-
-(def ^Schema Inner
-  (-> (SchemaBuilder/builder)
-      (.record "Inner")
-      ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
-      ^SchemaBuilder$FieldAssembler .fields
-      (.name "stringDefault") .type .stringType (.stringDefault "default value")
-      (.name "stringNoDefault") .type .stringType .noDefault
-      .endRecord))
-
-(def ^Schema Wrapper
-  (-> (SchemaBuilder/builder)
-      (.record "Record")
-      ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
-      ^SchemaBuilder$FieldAssembler .fields
-      (.name "stringDefault") .type .stringType (.stringDefault "default value")
-      (.name "stringNoDefault") .type .stringType .noDefault
-      (.name "nullSchemaDefault") .type .unionOf .nullType .and (.type Inner) .endUnion .nullDefault
-      (.name "nullSchemaNoDefault") .type .unionOf .nullType .and (.type Inner) .endUnion .noDefault
-      .endRecord))
-
-(deftest union-schema-default-test
-  (let [data {"stringDefault" "string"
-              "stringNoDefault" "string"
-              "nullSchemaDefault" {"stringDefault" "string"
-                                   "stringNoDefault" "string"}
-              "nullSchemaNoDefault" {"stringDefault" "string"
-                                     "stringNoDefault" "string"}}
-        expected data
-        producer (clj->avro-record config Wrapper)
-        record (producer data)]
-    (is (= (avro->clj config Wrapper (generic-avro-serde-round-trip record))
-           (avro->clj config Wrapper record)
-           expected)))
-  (let [data {;; "stringDefault" "string"
-              "stringNoDefault" "string"
-              "nullSchemaDefault" {"stringDefault" "string"
-                                   "stringNoDefault" "string"}
-              "nullSchemaNoDefault" {"stringDefault" "string"
-                                     "stringNoDefault" "string"}}
-        expected {"stringDefault" "default value"
-                  "stringNoDefault" "string"
-                  "nullSchemaDefault" {"stringDefault" "string"
-                                       "stringNoDefault" "string"}
-                  "nullSchemaNoDefault" {"stringDefault" "string"
-                                         "stringNoDefault" "string"}}
-        producer (clj->avro-record config Wrapper)
-        record (producer data)]
-    (is (= (avro->clj config Wrapper (generic-avro-serde-round-trip record))
-           (avro->clj config Wrapper record)
-           expected)))
-  (let [data {"stringDefault" "string"
-              "stringNoDefault" "string"
-              "nullSchemaDefault" {;; "stringDefault" "string"
-                                   "stringNoDefault" "string"}
-              "nullSchemaNoDefault" {"stringDefault" "string"
-                                     "stringNoDefault" "string"}}
-        expected {"stringDefault" "string"
-                  "stringNoDefault" "string"
-                  "nullSchemaDefault" {"stringDefault" "default value"
-                                       "stringNoDefault" "string"}
-                  "nullSchemaNoDefault" {"stringDefault" "string"
-                                         "stringNoDefault" "string"}}
-        producer (clj->avro-record config Wrapper)
-        record (producer data)]
-    (is (= (avro->clj config Wrapper (generic-avro-serde-round-trip record))
-           (avro->clj config Wrapper record)
-           expected)))
-  (let [data {"stringDefault" "string"
-              "stringNoDefault" "string"
-              ;; "nullSchemaDefault" {"stringDefault" "default value"
-              ;;                      "stringNoDefault" "string"}
-              "nullSchemaNoDefault" {"stringDefault" "string"
-                                     "stringNoDefault" "string"}}
-        expected {"stringDefault" "string"
-                  "stringNoDefault" "string"
-                  "nullSchemaDefault" nil
-                  "nullSchemaNoDefault" {"stringDefault" "string"
-                                         "stringNoDefault" "string"}}
-        producer (clj->avro-record config Wrapper)
-        record (producer data)]
-    (is (= (avro->clj config Wrapper (generic-avro-serde-round-trip record))
-           (avro->clj config Wrapper record)
-           expected)))
-  (let [data {"stringNoDefault" "string"
-              "nullSchemaNoDefault" {"stringNoDefault" "string"}}
-        expected {"stringDefault" "default value"
-                  "stringNoDefault" "string"
-                  "nullSchemaDefault" nil
-                  "nullSchemaNoDefault" {"stringDefault" "default value"
-                                         "stringNoDefault" "string"}}
-        producer (clj->avro-record config Wrapper)
-        record (producer data)]
-    (is (= (avro->clj config Wrapper (generic-avro-serde-round-trip record))
-           (avro->clj config Wrapper record)
-           expected)))
-  (let [data {"stringDefault" "string"
-              "stringNoDefault" "string"
-              "nullSchemaDefault" {"stringDefault" "string"
-                                   "stringNoDefault" "string"}
-              "nullSchemaNoDefault" {"stringDefault" "string"
-                                     "stringNoDefault" "string"}}
-        expected data
-        producer (clj->avro-record config Wrapper)
-        record (producer data)]
-    (is (= (avro->clj config Wrapper (generic-avro-serde-round-trip record))
-           (avro->clj config Wrapper record)
-           expected)))
-  (let [data {"stringDefault" "string"
-              ;; "stringNoDefault" "string"
-              "nullSchemaDefault" {"stringDefault" "string"
-                                   "stringNoDefault" "string"}
-              "nullSchemaNoDefault" {"stringDefault" "string"
-                                     "stringNoDefault" "string"}}
-        producer (clj->avro-record config Wrapper)]
-    (is (= ::exception-fired
-           (try (producer data)
-                (catch AvroMissingFieldException _
-                  ::exception-fired)))))
-  (let [data {"stringDefault" "string"
-              "stringNoDefault" "string"
-              "nullSchemaDefault" {"stringDefault" :a
-                                   ;; "stringNoDefault" "string"
-                                   }
-              "nullSchemaNoDefault" {"stringDefault" "string"
-                                     "stringNoDefault" "string"}}
-        producer (clj->avro-record config Wrapper)]
-    ;; FIXME known bug. Shifting to a whole new method (inspired by malli) is probably
-    ;; necessary to get rid of it. Here we expect an exception to be thrown at slava-time,
-    ;; but it will only be an generic-serde-time.
-    (is (not= ::exception-fired
-              (try (producer data)
-                   (catch AvroMissingFieldException _
-                     ::exception-fired))))))

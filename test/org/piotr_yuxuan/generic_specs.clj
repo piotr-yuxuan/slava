@@ -1,4 +1,4 @@
-(ns com.slava.generic-specs
+(ns org.piotr-yuxuan.generic-specs
   "Specification of datastructures used by generic avro schemas"
   (:require [clojure.spec.alpha :as s]
             [clojure.test.check.generators :as test.g])
