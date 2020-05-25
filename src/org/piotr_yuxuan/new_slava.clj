@@ -102,23 +102,24 @@
                                                     (get-in macro-registry [record-schema-name (.name field)])
                                                     (get-in macro-registry [(keyword record-schema-name) (.name field)]))]
                                          (when-not (= ::not-found f) (f macro-registry macro-schema)))
-                          ?value->avro (cond (and schema->avro (nil? custom->avro)) schema->avro
-                                             (and (nil? schema->avro) custom->avro) custom->avro
-                                             (and schema->avro custom->avro) `(comp ~schema->avro ~custom->avro))]
+                          ?value->avro# (cond (and schema->avro (nil? custom->avro)) schema->avro
+                                              (and (nil? schema->avro) custom->avro) custom->avro
+                                              (and schema->avro custom->avro) `(comp ~schema->avro ~custom->avro))
+                          value# (if ?value->avro# `(~?value->avro# (get ~m ~field-name#)) `(get ~m ~field-name#))]
                       (cond
                         ;; schema type: record
                         (and (= Schema$Type/RECORD (.getType (.schema field))) nil-as-absent?)
-                        `(when-let [~value (get ~m ~field-name#)]
+                        `(when-let [~value ~value#]
                            (let [~compiler (compile-clj->avro ~registry (.schema (.getField ^Schema ~schema ~(.name field))))]
                              (.set ~builder ~avro-name# (~compiler ~value))))
 
                         (and (= Schema$Type/RECORD (.getType (.schema field))) (not nil-as-absent?))
                         `(let [~compiler (compile-clj->avro ~registry (.schema (.getField ^Schema ~schema ~(.name field))))]
-                           (.set ~builder ~avro-name# (~compiler (get ~m ~field-name#))))
+                           (.set ~builder ~avro-name# (~compiler ~value#)))
 
                         ;; schema type: map
                         (and (= Schema$Type/MAP (.getType (.schema field))) nil-as-absent?)
-                        `(when-let [~value (get ~m ~field-name#)]
+                        `(when-let [~value ~value#]
                            (if-let [~compiler (compile-clj->avro ~registry (.getValueType (.schema (.getField ^Schema ~schema ~(.name field)))))]
                              (.set ~builder ~avro-name# (zipmap (keys ~value)
                                                                 (map ~compiler (vals ~value))))
@@ -126,33 +127,29 @@
 
                         (and (= Schema$Type/MAP (.getType (.schema field))) (not nil-as-absent?))
                         `(if-let [~compiler (compile-clj->avro ~registry (.getValueType (.schema (.getField ^Schema ~schema ~(.name field)))))]
-                           (.set ~builder ~avro-name# (zipmap (keys ~value)
-                                                              (map ~compiler (vals ~value))))
-                           (.set ~builder ~avro-name# ~value))
+                           (.set ~builder ~avro-name# (zipmap (keys ~value#)
+                                                              (map ~compiler (vals ~value#))))
+                           (.set ~builder ~avro-name# ~value#))
 
                         ;; schema type: array
                         (and (= Schema$Type/ARRAY (.getType (.schema field))) nil-as-absent?)
-                        `(when-let [~value (get ~m ~field-name#)]
+                        `(when-let [~value ~value#]
                            (if-let [~compiler (compile-clj->avro ~registry (.getElementType (.schema (.getField ^Schema ~schema ~(.name field)))))]
                              (.set ~builder ~avro-name# (map ~compiler ~value))
                              (.set ~builder ~avro-name# ~value)))
 
                         (and (= Schema$Type/ARRAY (.getType (.schema field))) (not nil-as-absent?))
                         `(if-let [~compiler (compile-clj->avro ~registry (.getElementType (.schema (.getField ^Schema ~schema ~(.name field)))))]
-                           (.set ~builder ~avro-name# (map ~compiler ~value))
-                           (.set ~builder ~avro-name# ~value))
+                           (.set ~builder ~avro-name# (map ~compiler ~value#))
+                           (.set ~builder ~avro-name# ~value#))
 
                         ;; schema type: not record
-                        (and nil-as-absent? ?value->avro)
-                        `(when-let [~value (get ~m ~field-name#)]
-                           (.set ~builder ~avro-name# (~?value->avro ~value)))
-
-                        (and nil-as-absent? (not ?value->avro))
-                        `(when-let [~value (get ~m ~field-name#)]
+                        (and nil-as-absent? ?value->avro#)
+                        `(when-let [~value ~value#]
                            (.set ~builder ~avro-name# ~value))
 
-                        (and (not nil-as-absent?) (not ?value->avro))
-                        `(.set ~builder ~avro-name# (get ~m ~field-name#)))))
+                        (and (not nil-as-absent?))
+                        `(.set ~builder ~avro-name# ~value#))))
                   (.getFields macro-schema))
            (.build ~builder)))
 
@@ -179,18 +176,18 @@
    :float (fn [registry ^Schema schema] (println :float) (fn [value] (float value)))
    :double (fn [registry ^Schema schema] (println :double) (fn [value] (double value)))
    :boolean (fn [registry ^Schema schema] (println :boolean) (fn [value] (boolean value)))
-   :null (fn [registry ^Schema schema] (println :null) nil)
+   :null (fn [registry ^Schema schema]
+           ;; no transformation, schema builder will throw an exception if value is not nil.
+           nil)
    ;; Custom configuration keys
    :enum-name csk/->SCREAMING_SNAKE_CASE_STRING
    :field-name csk/->kebab-case-keyword
-   :nil-as-absent? true
+   :nil-as-absent? false
    ;; Custom serialisers. Applied before base serialisers.
    :org.piotr-yuxuan.test.Record/intField (fn [registry ^Schema schema]
-                                            ; (println :org.piotr-yuxuan.test.Record/intField)
                                             (fn [value]
                                               (* 2 value)))
-   :org.piotr-yuxuan.test.Nested/mapField (fn [registry ^Schema schema]
-                                            ; (println :org.piotr-yuxuan.test.Nested/mapField)
+   :org.piotr-yuxuan.test.Record/mapField (fn [registry ^Schema schema]
                                             (fn [value]
                                               (assoc value :c "I'm c.")))})
 (macroexpand '(compile-clj->avro clj->avro-registry wrapping-schema))
@@ -203,3 +200,10 @@
    :map-field {1 :a, "b" 1}
    :nested-field {:simple-field "value for simple-field"
                   :other-field "value for other-field"}})
+
+(macroexpand '(compile-clj->avro clj->avro-registry nested-schema))
+(def nested-compiled (compile-clj->avro clj->avro-registry nested-schema))
+(println "post-compilation for second")
+(nested-compiled
+  {:simple-field "value for simple-field"
+   :other-field "value for other-field"})
