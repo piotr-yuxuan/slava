@@ -134,10 +134,24 @@
          (.build ~builder)))))
 
 (def clj->avro-registry
-  {:clj-name csk/->kebab-case-keyword
+  {:record (fn [registry schema] (println :record) nil)
+   :enum (fn [registry schema] (println :enum) nil)
+   :array (fn [registry schema] (println :array) nil)
+   :map (fn [registry schema] (println :map) nil)
+   :union (fn [registry schema] (println :union) nil)
+   :fixed (fn [registry schema] (println :fixed) nil)
+   :string (fn [registry schema] (println :string) nil)
+   :bytes (fn [registry schema] (println :bytes) nil)
+   :int (fn [registry schema] (println :int) nil)
+   :long (fn [registry schema] (println :long) nil)
+   :float (fn [registry schema] (println :float) nil)
+   :double (fn [registry schema] (println :double) nil)
+   :boolean (fn [registry schema] (println :boolean) nil)
+   :null (fn [registry schema] (println :null) nil)
+   ;; Custom configuration keys
+   :clj-name csk/->kebab-case-keyword
    :nil-as-absent? true
-   Schema$Type/INT (fn [] (fn [value] (+ 42 value)))
-   :org.piotr-yuxuan.test.Nested/otherField (fn [] (fn [value] identity value))})
+   :org.piotr-yuxuan.test.Nested/otherField (fn [] (println :org.piotr-yuxuan.test.Nested/otherField) (fn [value] value))})
 (macroexpand '(compile-clj->avro clj->avro-registry wrapping-schema))
 (def compiled (compile-clj->avro clj->avro-registry wrapping-schema))
 (compiled
