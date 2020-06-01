@@ -6,6 +6,7 @@
             :addendum "GPL_ADDITION.md"}
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [org.apache.avro/avro "1.9.2"]
+                 [metosin/reitit "0.5.2"] ;; better to manage dependencies with deps.edn lein middleware
                  [io.confluent/kafka-avro-serializer "5.4.1"]
                  [camel-snake-kebab "0.4.1"]]
   :aot [org.piotr-yuxuan.slava]
