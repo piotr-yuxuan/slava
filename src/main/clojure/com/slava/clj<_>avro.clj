@@ -248,13 +248,17 @@
          (concat (filter #(= Schema$Type/UNION (.getType ^Schema %)) inner-types)
                  (filter #(= Schema$Type/RECORD (.getType ^Schema %)) inner-types))
          (some (fn tinder [schema] ;; needs a match desperately
-                 (try (avro->clj config schema data) (catch Exception _)))))))
+                 (try (avro->clj config schema data) (catch Throwable _)))))))
 (defmethod clj->avro-schema-type Schema$Type/UNION [config ^Schema$UnionSchema schema data]
-  (some (fn first-matching-type [schema]
-          (try (clj->avro config schema data) (catch Exception _)))
-        (condp = (.getType schema)
-          Schema$Type/UNION (.getTypes schema)
-          Schema$Type/ARRAY (.getTypes (.getElementType schema)))))
+  (let [schemas (condp = (.getType schema)
+                  Schema$Type/UNION (.getTypes schema)
+                  Schema$Type/ARRAY (.getTypes (.getElementType schema)))
+        coerced (some (fn first-matching-type [schema]
+                        (try {:value (clj->avro config schema data)} (catch Throwable _)))
+                      schemas)]
+    (if (contains? coerced :value)
+      (:value coerced)
+      (assert ::not-suitable-schema))))
 
 (defmethod avro->clj-schema-type Schema$Type/FIXED [config ^Schema$FixedSchema schema data]
   (doto (ByteBuffer/allocate (.getFixedSize schema)) (.put (.bytes ^GenericFixed data)) (.rewind)))
@@ -263,12 +267,13 @@
 
 (defmethod avro->clj-schema-type Schema$Type/STRING [config ^Schema$FixedSchema schema data] (str data))
 
-(defmethod clj->avro-schema-type Schema$Type/INT [config ^Schema$FixedSchema schema data] (int data))
-(defmethod clj->avro-schema-type Schema$Type/LONG [config ^Schema$FixedSchema schema data] (long data))
-(defmethod clj->avro-schema-type Schema$Type/FLOAT [config ^Schema$FixedSchema schema data] (float data))
-(defmethod clj->avro-schema-type Schema$Type/DOUBLE [config ^Schema$FixedSchema schema data] (double data))
-(defmethod clj->avro-schema-type Schema$Type/BOOLEAN [config ^Schema$FixedSchema schema data] (boolean data))
-(defmethod clj->avro-schema-type Schema$Type/NULL [config ^Schema$FixedSchema schema data] nil)
+(defmethod clj->avro-schema-type Schema$Type/STRING [config ^Schema$FixedSchema schema data] (assert (string? data)) (str data))
+(defmethod clj->avro-schema-type Schema$Type/INT [config ^Schema$FixedSchema schema data] (assert (int? data)) (int data))
+(defmethod clj->avro-schema-type Schema$Type/LONG [config ^Schema$FixedSchema schema data] (assert (instance? Long data)) (long data))
+(defmethod clj->avro-schema-type Schema$Type/FLOAT [config ^Schema$FixedSchema schema data] (assert (float? data)) (float data))
+(defmethod clj->avro-schema-type Schema$Type/DOUBLE [config ^Schema$FixedSchema schema data] (assert (double? data)) (double data))
+(defmethod clj->avro-schema-type Schema$Type/BOOLEAN [config ^Schema$FixedSchema schema data] (assert (boolean? data)) (boolean data))
+(defmethod clj->avro-schema-type Schema$Type/NULL [config ^Schema$FixedSchema schema data] (assert (nil? data)) nil)
 
 ;;;
 ;;; Implementation of dispatch on logical types

@@ -28,4 +28,7 @@
                                    [kovacnica/clojure.network.ip "0.1.3"]]}
              :precomp {:source-paths ["src/main/clojure"]
                        :aot [com.slava.clj<->avro]}}
-  :repositories [["confluent" "https://packages.confluent.io/maven/"]])
+  :repositories [["confluent" "https://packages.confluent.io/maven/"]]
+  :deploy-repositories [["github" {:url "https://maven.pkg.github.com/piotr-yuxuan/slava"
+                                   :username :env/GH_PACKAGES_USR
+                                   :password :env/GH_PACKAGES_PSW}]])

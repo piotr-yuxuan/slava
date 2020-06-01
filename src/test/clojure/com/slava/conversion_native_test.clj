@@ -4,7 +4,7 @@
             [clojure.spec.gen.alpha :as gen]
             [com.slava.clj<->avro :refer :all]
             [com.slava.generic-specs :refer :all])
-  (:import (org.apache.avro SchemaBuilder SchemaBuilder$RecordBuilder SchemaBuilder$FieldAssembler Schema SchemaBuilder$ArrayDefault SchemaBuilder$MapDefault SchemaBuilder$UnionAccumulator LogicalTypes Schema$Type SchemaBuilder$FieldDefault SchemaBuilder$EnumBuilder SchemaBuilder$StringBldr SchemaBuilder$FixedBuilder SchemaBuilder$NamespacedBuilder)
+  (:import (org.apache.avro SchemaBuilder SchemaBuilder$RecordBuilder SchemaBuilder$FieldAssembler Schema SchemaBuilder$ArrayDefault SchemaBuilder$MapDefault SchemaBuilder$UnionAccumulator LogicalTypes Schema$Type SchemaBuilder$FieldDefault SchemaBuilder$EnumBuilder SchemaBuilder$StringBldr SchemaBuilder$FixedBuilder SchemaBuilder$NamespacedBuilder AvroMissingFieldException)
            (io.confluent.kafka.schemaregistry.client MockSchemaRegistryClient)
            (io.confluent.kafka.streams.serdes.avro GenericAvroSerde)
            (org.apache.avro.generic GenericRecordBuilder GenericData$StringType GenericData$Record)
@@ -467,7 +467,10 @@
                    .endRecord)]
     (let [producer (clj->avro-record config schema)]
       (is (= "paris" (-> ^GenericData$Record (producer {"field" {"nestedField" "paris"}}) ^GenericData$Record (.get "field") (.get "nestedField"))))
-      (is (= nil (-> ^GenericData$Record (producer {"field" {"nestedField" nil}}) ^GenericData$Record (.get "field") (.get "nestedField")))) ;; won't get serialised
+      (is (= ::exception-fired
+             (try (-> ^GenericData$Record (producer {"field" {"nestedField" nil}}) ^GenericData$Record (.get "field") (.get "nestedField"))
+                  (catch java.lang.AssertionError _
+                    ::exception-fired))))
       (is (= "default value" (-> ^GenericData$Record (producer {"field" {}}) ^GenericData$Record (.get "field") (.get "nestedField") str))))
     (let [producer (clj->avro-record config schema {"field" {"nestedField" "hurray"}})]
       (is (= "london" (-> ^GenericData$Record (producer {"field" {"nestedField" "london"}}) ^GenericData$Record (.get "field") (.get "nestedField"))))
@@ -479,3 +482,137 @@
         (is (= "london" (-> ^GenericData$Record (producer {:field {:nestedField "london"}}) ^GenericData$Record (.get "field") (.get "nestedField"))))
         (is (= "default value" (-> ^GenericData$Record (producer {:field {}}) ^GenericData$Record (.get "field") (.get "nestedField") str)))
         (is (= "hurray" (-> ^GenericData$Record (producer {}) ^GenericData$Record (.get "field") (.get "nestedField"))))))))
+
+(def ^Schema Inner
+  (-> (SchemaBuilder/builder)
+      (.record "Inner")
+      ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+      ^SchemaBuilder$FieldAssembler .fields
+      (.name "stringDefault") .type .stringType (.stringDefault "default value")
+      (.name "stringNoDefault") .type .stringType .noDefault
+      .endRecord))
+
+(def ^Schema Wrapper
+  (-> (SchemaBuilder/builder)
+      (.record "Record")
+      ^SchemaBuilder$RecordBuilder (.namespace "com.slava.test")
+      ^SchemaBuilder$FieldAssembler .fields
+      (.name "stringDefault") .type .stringType (.stringDefault "default value")
+      (.name "stringNoDefault") .type .stringType .noDefault
+      (.name "nullSchemaDefault") .type .unionOf .nullType .and (.type Inner) .endUnion .nullDefault
+      (.name "nullSchemaNoDefault") .type .unionOf .nullType .and (.type Inner) .endUnion .noDefault
+      .endRecord))
+
+(deftest union-schema-default-test
+  (let [data {"stringDefault" "string"
+              "stringNoDefault" "string"
+              "nullSchemaDefault" {"stringDefault" "string"
+                                   "stringNoDefault" "string"}
+              "nullSchemaNoDefault" {"stringDefault" "string"
+                                     "stringNoDefault" "string"}}
+        expected data
+        producer (clj->avro-record config Wrapper)
+        record (producer data)]
+    (is (= (avro->clj config Wrapper (generic-avro-serde-round-trip record))
+           (avro->clj config Wrapper record)
+           expected)))
+  (let [data {;; "stringDefault" "string"
+              "stringNoDefault" "string"
+              "nullSchemaDefault" {"stringDefault" "string"
+                                   "stringNoDefault" "string"}
+              "nullSchemaNoDefault" {"stringDefault" "string"
+                                     "stringNoDefault" "string"}}
+        expected {"stringDefault" "default value"
+                  "stringNoDefault" "string"
+                  "nullSchemaDefault" {"stringDefault" "string"
+                                       "stringNoDefault" "string"}
+                  "nullSchemaNoDefault" {"stringDefault" "string"
+                                         "stringNoDefault" "string"}}
+        producer (clj->avro-record config Wrapper)
+        record (producer data)]
+    (is (= (avro->clj config Wrapper (generic-avro-serde-round-trip record))
+           (avro->clj config Wrapper record)
+           expected)))
+  (let [data {"stringDefault" "string"
+              "stringNoDefault" "string"
+              "nullSchemaDefault" {;; "stringDefault" "string"
+                                   "stringNoDefault" "string"}
+              "nullSchemaNoDefault" {"stringDefault" "string"
+                                     "stringNoDefault" "string"}}
+        expected {"stringDefault" "string"
+                  "stringNoDefault" "string"
+                  "nullSchemaDefault" {"stringDefault" "default value"
+                                       "stringNoDefault" "string"}
+                  "nullSchemaNoDefault" {"stringDefault" "string"
+                                         "stringNoDefault" "string"}}
+        producer (clj->avro-record config Wrapper)
+        record (producer data)]
+    (is (= (avro->clj config Wrapper (generic-avro-serde-round-trip record))
+           (avro->clj config Wrapper record)
+           expected)))
+  (let [data {"stringDefault" "string"
+              "stringNoDefault" "string"
+              ;; "nullSchemaDefault" {"stringDefault" "default value"
+              ;;                      "stringNoDefault" "string"}
+              "nullSchemaNoDefault" {"stringDefault" "string"
+                                     "stringNoDefault" "string"}}
+        expected {"stringDefault" "string"
+                  "stringNoDefault" "string"
+                  "nullSchemaDefault" nil
+                  "nullSchemaNoDefault" {"stringDefault" "string"
+                                         "stringNoDefault" "string"}}
+        producer (clj->avro-record config Wrapper)
+        record (producer data)]
+    (is (= (avro->clj config Wrapper (generic-avro-serde-round-trip record))
+           (avro->clj config Wrapper record)
+           expected)))
+  (let [data {"stringNoDefault" "string"
+              "nullSchemaNoDefault" {"stringNoDefault" "string"}}
+        expected {"stringDefault" "default value"
+                  "stringNoDefault" "string"
+                  "nullSchemaDefault" nil
+                  "nullSchemaNoDefault" {"stringDefault" "default value"
+                                         "stringNoDefault" "string"}}
+        producer (clj->avro-record config Wrapper)
+        record (producer data)]
+    (is (= (avro->clj config Wrapper (generic-avro-serde-round-trip record))
+           (avro->clj config Wrapper record)
+           expected)))
+  (let [data {"stringDefault" "string"
+              "stringNoDefault" "string"
+              "nullSchemaDefault" {"stringDefault" "string"
+                                   "stringNoDefault" "string"}
+              "nullSchemaNoDefault" {"stringDefault" "string"
+                                     "stringNoDefault" "string"}}
+        expected data
+        producer (clj->avro-record config Wrapper)
+        record (producer data)]
+    (is (= (avro->clj config Wrapper (generic-avro-serde-round-trip record))
+           (avro->clj config Wrapper record)
+           expected)))
+  (let [data {"stringDefault" "string"
+              ;; "stringNoDefault" "string"
+              "nullSchemaDefault" {"stringDefault" "string"
+                                   "stringNoDefault" "string"}
+              "nullSchemaNoDefault" {"stringDefault" "string"
+                                     "stringNoDefault" "string"}}
+        producer (clj->avro-record config Wrapper)]
+    (is (= ::exception-fired
+           (try (producer data)
+                (catch AvroMissingFieldException _
+                  ::exception-fired)))))
+  (let [data {"stringDefault" "string"
+              "stringNoDefault" "string"
+              "nullSchemaDefault" {"stringDefault" :a
+                                   ;; "stringNoDefault" "string"
+                                   }
+              "nullSchemaNoDefault" {"stringDefault" "string"
+                                     "stringNoDefault" "string"}}
+        producer (clj->avro-record config Wrapper)]
+    ;; FIXME known bug. Shifting to a whole new method (inspired by malli) is probably
+    ;; necessary to get rid of it. Here we expect an exception to be thrown at slava-time,
+    ;; but it will only be an generic-serde-time.
+    (is (not= ::exception-fired
+              (try (producer data)
+                   (catch AvroMissingFieldException _
+                     ::exception-fired))))))
