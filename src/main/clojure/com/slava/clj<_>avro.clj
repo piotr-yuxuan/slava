@@ -265,7 +265,10 @@
 (defmethod clj->avro-schema-type Schema$Type/FIXED [config ^Schema$FixedSchema schema data]
   (GenericData$Fixed. schema (.array ^ByteBuffer data)))
 
-(defmethod avro->clj-schema-type Schema$Type/STRING [config ^Schema$FixedSchema schema data] (str data))
+(defmethod avro->clj-schema-type Schema$Type/STRING [config ^Schema$FixedSchema schema data]
+  ;; Coerce avro Utf8 into Java string.
+  (when data
+    (str data)))
 
 (defmethod clj->avro-schema-type Schema$Type/STRING [config ^Schema$FixedSchema schema data] (assert (string? data)) (str data))
 (defmethod clj->avro-schema-type Schema$Type/INT [config ^Schema$FixedSchema schema data] (assert (int? data)) (int data))
