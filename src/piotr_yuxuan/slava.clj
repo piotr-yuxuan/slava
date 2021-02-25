@@ -1,4 +1,4 @@
-(ns org.piotr-yuxuan.new-slava
+(ns piotr-yuxuan.slava
   (:require [malli.core :as m]
             [malli.transform :as mt]
             [malli.util :as mu]
@@ -6,7 +6,9 @@
             [jsonista.core :as json])
   (:import (org.apache.avro Schema Schema$RecordSchema SchemaBuilder SchemaBuilder$RecordBuilder SchemaBuilder$FieldAssembler SchemaBuilder$FieldDefault Schema$Field Schema$Type SchemaBuilder$MapDefault SchemaBuilder$GenericDefault Schema$StringSchema SchemaBuilder$StringBldr)
            (org.apache.avro.generic GenericData$Record GenericRecordBuilder GenericData$EnumSymbol)
-           (java.lang.reflect Method)))
+           (java.lang.reflect Method)
+           (io.confluent.kafka.serializers KafkaAvroDeserializer)
+           (java.util Map)))
 
 (def avro-schema-transformer
   {:name :avro.schema
@@ -150,3 +152,11 @@
         (m/encode [:map [:zoned-date-time schema]] data (mt/transformer {:name :date})))
 
 
+(defn deserialize
+  ;; Is GenericData$Record the correct apex type?
+  ^Map [^Schema schema ^GenericData$Record record]
+  record)
+
+(defn serialize
+  ^Map [^Schema schema ^Map m]
+  m)
