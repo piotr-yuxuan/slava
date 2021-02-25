@@ -60,7 +60,9 @@
   [this ^String topic ^Map m]
   (let [writer-schema (resolve-schema this topic m)]
     (assert (instance? Schema writer-schema) "The schema must be an Avro schema.")
-    (.superSerialize this topic (slava/serialize writer-schema m))))
+    (->> m
+         (slava/serialize writer-schema)
+         (.superSerialize this topic))))
 
 (defn -configure
   [this ^Map configs isKey]

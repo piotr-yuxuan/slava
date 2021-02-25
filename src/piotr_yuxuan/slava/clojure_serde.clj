@@ -18,15 +18,15 @@
 
 (defn -init
   ([]
-   [[] (SerdeState. (ClojureSerializer.)
-                    (ClojureDeserializer.))])
+   [[] (SerdeState.
+         (ClojureSerializer.)
+         (ClojureDeserializer.))])
   ;; For testing purpose only
   ([^SchemaRegistryClient client]
-   [[client]
-    (assert client "The schema registry client must be not null.")
-    (SerdeState.
-      (ClojureSerializer. client)
-      (ClojureDeserializer. client))]))
+   (assert client "The schema registry client must be not null.")
+   [[client] (SerdeState.
+               (ClojureSerializer. client)
+               (ClojureDeserializer. client))]))
 
 (defn -configure
   [this ^Map configs isKey]
