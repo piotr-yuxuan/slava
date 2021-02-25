@@ -41,6 +41,8 @@
   (assert (:client @(.-state this)) "The schema registry client must be not null.")
   (let [schema-id (resolve-schema-id data)
         writer-schema (resolve-schema this schema-id)]
+    ;; FIXME We could probbly retrieve the schema from super. Would be much better
+    ;; FIXME Let's demand and make sure that we get a generic record from user config, and raise an exception otherwise.
     (with-meta
       (->> data
            (.superDeserialize this topic)

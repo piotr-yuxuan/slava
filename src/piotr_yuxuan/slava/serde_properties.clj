@@ -26,5 +26,5 @@
   {:client (or client (new-client config))
    :isKey isKey
    :key-subject-name-strategy (.keySubjectNameStrategy config)
-   :value-subject-name-strategy (.keySubjectNameStrategy config)
-   :use-schema-reflection (.keySubjectNameStrategy config)})
+   :value-subject-name-strategy (.valueSubjectNameStrategy config)
+   :use-schema-reflection (.useSchemaReflection config)})
