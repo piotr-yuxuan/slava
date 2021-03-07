@@ -24,7 +24,10 @@
                "-d" "test"]}
   :jar {:replace-deps {seancorfield/depstar {:mvn/version "2.0.171"}}
         :exec-fn hf.depstar/jar
-        :exec-args {:jar "closeable-map.jar" :sync-pom true}}
+        :exec-args {:jar "closeable-map.jar"
+                    :sync-pom true
+                    :compile-ns :all
+                    :aot true}}
   :install {:replace-deps {slipset/deps-deploy {:mvn/version "0.1.5"}}
             :exec-fn deps-deploy.deps-deploy/deploy
             :exec-args {:installer :local :artifact "closeable-map.jar"}}
