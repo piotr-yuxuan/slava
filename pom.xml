@@ -4,7 +4,7 @@
   <groupId>piotr-yuxuan</groupId>
   <artifactId>slava</artifactId>
   <packaging>jar</packaging>
-  <version>0.9.0</version>
+  <version>0.10.0</version>
   <name>slava</name>
   <description>Kafka Avro Serde for Clojure</description>
   <url>https://github.com/piotr-yuxuan/slava</url>
@@ -20,7 +20,7 @@
     <url>https://github.com/piotr-yuxuan/slava.git</url>
     <connection>scm:git:git://github.com/piotr-yuxuan/slava.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/piotr-yuxuan/slava.git</developerConnection>
-    <tag>ce3cef554fd799ec2de0fdbe17446c47bbe2867f</tag>
+    <tag>7ba6927a2f7a02d682c59e25ef80615e7f78f1b1</tag>
   </scm>
   <build>
     <sourceDirectory>src</sourceDirectory>
@@ -62,35 +62,18 @@
   </build>
   <repositories>
     <repository>
-      <id>central</id>
-      <url>https://repo1.maven.org/maven2/</url>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
+      <id>clojars</id>
+      <url>https://clojars.org/repo/</url>
     </repository>
     <repository>
-      <id>clojars</id>
-      <url>https://repo.clojars.org/</url>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
+      <id>confluent</id>
+      <url>https://packages.confluent.io/maven/</url>
     </repository>
   </repositories>
   <dependencyManagement>
     <dependencies/>
   </dependencyManagement>
   <dependencies>
-    <dependency>
-      <groupId>org.lz4</groupId>
-      <artifactId>lz4-java</artifactId>
-      <version>1.7.1</version>
-    </dependency>
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>clojure</artifactId>
@@ -102,136 +85,9 @@
       <version>1.10.1</version>
     </dependency>
     <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-compress</artifactId>
-      <version>1.20</version>
-    </dependency>
-    <dependency>
-      <groupId>org.clojure</groupId>
-      <artifactId>tools.logging</artifactId>
-      <version>0.3.1</version>
-      <exclusions>
-        <exclusion>
-          <artifactId>clojure</artifactId>
-          <groupId>org.clojure</groupId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>org.glassfish.jersey.core</groupId>
-      <artifactId>jersey-common</artifactId>
-      <version>2.31</version>
-    </dependency>
-    <dependency>
-      <groupId>org.clojure</groupId>
-      <artifactId>core.specs.alpha</artifactId>
-      <version>0.2.56</version>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
-      <version>2.11.3</version>
-    </dependency>
-    <dependency>
-      <groupId>org.clojure</groupId>
-      <artifactId>spec.alpha</artifactId>
-      <version>0.2.194</version>
-    </dependency>
-    <dependency>
-      <groupId>manifold</groupId>
-      <artifactId>manifold</artifactId>
-      <version>0.1.8</version>
-    </dependency>
-    <dependency>
-      <groupId>com.github.luben</groupId>
-      <artifactId>zstd-jni</artifactId>
-      <version>1.4.5-6</version>
-    </dependency>
-    <dependency>
-      <groupId>org.glassfish.hk2.external</groupId>
-      <artifactId>jakarta.inject</artifactId>
-      <version>2.6.1</version>
-      <exclusions>
-        <exclusion>
-          <artifactId>javax.inject</artifactId>
-          <groupId>javax.inject</groupId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>io.swagger</groupId>
-      <artifactId>swagger-annotations</artifactId>
-      <version>1.6.2</version>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-core</artifactId>
-      <version>2.11.3</version>
-    </dependency>
-    <dependency>
-      <groupId>io.confluent</groupId>
-      <artifactId>kafka-schema-serializer</artifactId>
-      <version>6.1.0</version>
-    </dependency>
-    <dependency>
-      <groupId>primitive-math</groupId>
-      <artifactId>primitive-math</artifactId>
-      <version>0.1.6</version>
-    </dependency>
-    <dependency>
-      <groupId>jakarta.annotation</groupId>
-      <artifactId>jakarta.annotation-api</artifactId>
-      <version>1.3.5</version>
-    </dependency>
-    <dependency>
-      <groupId>io.confluent</groupId>
-      <artifactId>common-utils</artifactId>
-      <version>6.1.0</version>
-    </dependency>
-    <dependency>
-      <groupId>clj-tuple</groupId>
-      <artifactId>clj-tuple</artifactId>
-      <version>0.2.2</version>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-annotations</artifactId>
-      <version>2.11.3</version>
-    </dependency>
-    <dependency>
-      <groupId>io.aleph</groupId>
-      <artifactId>dirigiste</artifactId>
-      <version>0.1.5</version>
-    </dependency>
-    <dependency>
-      <groupId>io.confluent</groupId>
-      <artifactId>kafka-schema-registry-client</artifactId>
-      <version>6.1.0</version>
-    </dependency>
-    <dependency>
       <groupId>byte-streams</groupId>
       <artifactId>byte-streams</artifactId>
       <version>0.2.5-alpha2</version>
-    </dependency>
-    <dependency>
-      <groupId>riddley</groupId>
-      <artifactId>riddley</artifactId>
-      <version>0.1.14</version>
-    </dependency>
-    <dependency>
-      <groupId>org.xerial.snappy</groupId>
-      <artifactId>snappy-java</artifactId>
-      <version>1.1.7.7</version>
-    </dependency>
-    <dependency>
-      <groupId>borkdude</groupId>
-      <artifactId>dynaload</artifactId>
-      <version>0.2.2</version>
-    </dependency>
-    <dependency>
-      <groupId>borkdude</groupId>
-      <artifactId>edamame</artifactId>
-      <version>0.0.11-alpha.29</version>
     </dependency>
     <dependency>
       <groupId>metosin</groupId>
@@ -239,55 +95,14 @@
       <version>0.3.0</version>
     </dependency>
     <dependency>
-      <groupId>org.apache.kafka</groupId>
-      <artifactId>kafka-clients</artifactId>
-      <version>6.1.0-ccs</version>
-      <exclusions>
-        <exclusion>
-          <artifactId>slf4j-log4j12</artifactId>
-          <groupId>org.slf4j</groupId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>org.clojure</groupId>
-      <artifactId>tools.reader</artifactId>
-      <version>1.3.4</version>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>1.7.30</version>
-    </dependency>
-    <dependency>
-      <groupId>org.clojure</groupId>
-      <artifactId>test.check</artifactId>
-      <version>1.1.0</version>
-    </dependency>
-    <dependency>
-      <groupId>com.sun.activation</groupId>
-      <artifactId>jakarta.activation</artifactId>
-      <version>1.2.2</version>
-    </dependency>
-    <dependency>
-      <groupId>org.glassfish.hk2</groupId>
-      <artifactId>osgi-resource-locator</artifactId>
-      <version>1.0.3</version>
+      <groupId>io.confluent</groupId>
+      <artifactId>kafka-avro-serializer</artifactId>
+      <version>6.1.0</version>
     </dependency>
     <dependency>
       <groupId>camel-snake-kebab</groupId>
       <artifactId>camel-snake-kebab</artifactId>
       <version>0.4.2</version>
-    </dependency>
-    <dependency>
-      <groupId>jakarta.ws.rs</groupId>
-      <artifactId>jakarta.ws.rs-api</artifactId>
-      <version>2.1.6</version>
-    </dependency>
-    <dependency>
-      <groupId>io.confluent</groupId>
-      <artifactId>kafka-avro-serializer</artifactId>
-      <version>6.1.0</version>
     </dependency>
   </dependencies>
   <developers>
@@ -297,8 +112,3 @@
     </developer>
   </developers>
 </project>
-
-<!-- This file was autogenerated by Leiningen.
-  Please do not edit it directly; instead edit project.clj and regenerate it.
-  It should not be considered canonical data. For more information see
-  https://github.com/technomancy/leiningen -->
