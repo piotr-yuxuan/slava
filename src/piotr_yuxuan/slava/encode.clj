@@ -16,7 +16,7 @@
          (str/join "-")
          (keyword "encoder"))))
 
-(declare -encoder-fn encode)
+(declare -encoder-fn)
 
 (defn avro-record
   "FIXME add cljdoc"
@@ -53,6 +53,9 @@
           (and value-encoder) #(->> % (map (juxt key (comp value-encoder val))) (into {}))
           (and map-key) #(->> % (map (juxt (comp map-key key) val)) (into {}))
           :else nil)))
+
+(declare encode) ; You should most likely not use it, and prefer
+                 ; `-encoder-fn` instead.
 
 (defn avro-union
   "FIXME add cljdoc"
