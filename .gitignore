@@ -1,5 +1,6 @@
-.lein-failures
 .cpcache/
 .nrepl-port
 target/
 /closeable-map.jar
+/*.asc
+/*.jar
