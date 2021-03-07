@@ -34,24 +34,33 @@
       (let [m (transient {})]
         (doseq [decoder! field-decoders]
           (decoder! m data))
-        (persistent! m)))))
+        (with-meta
+          (persistent! m)
+          {:piotr-yuxuan.slava/type :avro-record
+           :piotr-yuxuan.slava/reader-schema reader-schema})))))
 
 (defn avro-array
   "FIXME add cljdoc"
   [config ^Schema$ArraySchema reader-schema]
   (when-let [value-decoder (-decoder-fn config (.getElementType reader-schema))]
-    (fn [^GenericData$Array data] (map value-decoder data))))
+    (fn [^GenericData$Array data]
+      (with-meta
+        (map value-decoder data)
+        {:piotr-yuxuan.slava/type :avro-array
+         :piotr-yuxuan.slava/reader-schema reader-schema}))))
 
 (defn avro-map
   "FIXME add cljdoc"
   [config ^Schema$MapSchema reader-schema]
   (let [{:decoder/keys [map-key-fn]} config
         map-key (map-key-fn config reader-schema)
-        value-decoder (-decoder-fn config (.getValueType reader-schema))]
-    (cond (and map-key value-decoder) #(->> % (map (juxt (comp map-key key) (comp value-decoder val))) (into {}))
-          (and value-decoder) #(->> % (map (juxt key (comp value-decoder val))) (into {}))
-          (and map-key) #(->> % (map (juxt (comp map-key key) val)) (into {}))
-          :else nil)))
+        value-decoder (-decoder-fn config (.getValueType reader-schema))
+        meta-wrapper #(with-meta % {:piotr-yuxuan.slava/type :avro-map
+                                    :piotr-yuxuan.slava/reader-schema reader-schema})]
+    (cond (and map-key value-decoder) (comp meta-wrapper #(->> % (map (juxt (comp map-key key) (comp value-decoder val))) (into {})))
+          (and value-decoder) (comp meta-wrapper #(->> % (map (juxt key (comp value-decoder val))) (into {})))
+          (and map-key) (comp meta-wrapper #(->> % (map (juxt (comp map-key key) val)) (into {})))
+          :else meta-wrapper)))
 
 (defn avro-union
   "FIXME add cljdoc"

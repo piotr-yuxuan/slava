@@ -16,7 +16,7 @@
          (str/join "-")
          (keyword "encoder"))))
 
-(declare -encoder-fn)
+(declare -encoder-fn encode)
 
 (defn avro-record
   "FIXME add cljdoc"
@@ -65,12 +65,33 @@
     ;; If no types in the union need a encode, no need to find some.
     (when (seq encoded-types)
       (fn [data]
-        (if-let [found-encoder (->> encoded-types
-                                    (some (fn [[avro-type pred]] (when (pred data) avro-type)))
-                                    (get possible-encoders))]
-          (found-encoder data)
-          ;; If the concrete type doesn't need to be encoded, return datum as is.
-          data)))))
+        (condp (fn trololo [t _] t) nil
+          (some data [:piotr-yuxuan.slava/writer-schema
+                      :piotr-yuxuan.slava/reader-schema
+                      :piotr-yuxuan.slava/schema])
+          :>> #(encode config % data)
+
+          (some->> (some :piotr-yuxuan.slava/type [(meta data) data])
+                   name
+                   (keyword "encoder")
+                   (get possible-encoders))
+          :>> #(% data)
+
+          ;; BEWARE Opinionated choice, but that can be challenged. If
+          ;; the above heuristics don't work, return the first
+          ;; possible encoder. Some undesirable behaviours can't be
+          ;; avoided: for example it's not possible just by looking at
+          ;; `{:my-field 1}` to tell whether it is a map with one
+          ;; entry, or a record with one field. If you want certainty
+          ;; to break a tie in a predictable way, see explicit
+          ;; encoders above.
+          (some (fn first-possible [[avro-type pred]] (when (pred data) avro-type))
+                encoded-types)
+          :>> #(% data)
+
+          ;; If the concrete type doesn't need to be encoded, return
+          ;; datum as is.
+          :else data)))))
 
 (defn -encoder-fn
   "FIXME add cljdoc"
