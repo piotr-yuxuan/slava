@@ -1,5 +1,5 @@
-(ns piotr-yuxuan.slava.clojure-deserializer
-  (:require [piotr-yuxuan.slava.core :as slava]
+(ns piotr-yuxuan.slava.deserializer
+  (:require [piotr-yuxuan.slava.decode :refer [decode]]
             [piotr-yuxuan.slava.config :as config]
             [byte-streams :as byte-streams])
   (:import (clojure.lang Atom)
@@ -48,7 +48,7 @@
         ;; FIXME: how to get it?
         reader-schema writer-schema]
     (with-meta
-      (slava/deserialize @config reader-schema avro-data)
+      (decode @config reader-schema avro-data)
       {:piotr-yuxuan.slava/writer-schema writer-schema
        :piotr-yuxuan.slava/schema-id schema-id})))
 

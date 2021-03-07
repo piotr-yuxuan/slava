@@ -1,6 +1,6 @@
-(ns piotr-yuxuan.slava.clojure-serializer
+(ns piotr-yuxuan.slava.serializer
   "FIXME add cljdoc"
-  (:require [piotr-yuxuan.slava.core :as slava]
+  (:require [piotr-yuxuan.slava.encode :refer [encode]]
             [piotr-yuxuan.slava.config :as config]
             [piotr-yuxuan.slava.schema-registry :as schema-registry])
   (:import (io.confluent.kafka.schemaregistry ParsedSchema)
@@ -71,7 +71,7 @@
         {:keys [config ^KafkaAvroSerializer kafka-avro-serializer]} @(.-state this)]
     (assert (instance? Schema writer-schema) "The schema must be an Avro schema.")
     (->> m
-         (slava/serialize config writer-schema)
+         (encode config writer-schema)
          (.serialize kafka-avro-serializer topic))))
 
 (defn -configure

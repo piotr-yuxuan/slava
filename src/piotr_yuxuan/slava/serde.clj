@@ -1,7 +1,7 @@
-(ns piotr-yuxuan.slava.clojure-serde
+(ns piotr-yuxuan.slava.serde
   "FIXME add cljdoc"
-  (:require [piotr-yuxuan.slava.clojure-deserializer]
-            [piotr-yuxuan.slava.clojure-serializer])
+  (:require [piotr-yuxuan.slava.deserializer]
+            [piotr-yuxuan.slava.serializer])
   (:import (io.confluent.kafka.schemaregistry.client SchemaRegistryClient)
            (io.confluent.kafka.streams.serdes.avro ClojureSerde ClojureDeserializer ClojureSerializer)
            (java.util Map)
