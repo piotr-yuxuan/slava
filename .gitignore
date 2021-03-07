@@ -2,3 +2,4 @@
 .cpcache/
 .nrepl-port
 target/
+/closeable-map.jar
