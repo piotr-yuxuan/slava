@@ -60,6 +60,10 @@
   (let [possible-encoders (->> (.getTypes writer-schema)
                                (map (juxt encoder-name (partial -encoder-fn config)))
                                (remove (comp nil? second))
+                               ;; coercing into a map won't lead to
+                               ;; late k value overriding earlier k
+                               ;; value because it's prohibited in
+                               ;; Avro spec.
                                (into {}))
         encoded-types (select-keys clojure-types (keys possible-encoders))]
     ;; If no types in the union need a encode, no need to find some.
