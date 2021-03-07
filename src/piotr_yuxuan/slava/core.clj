@@ -1,4 +1,4 @@
-(ns piotr-yuxuan.slava
+(ns piotr-yuxuan.slava.core
   "FIXME add cljdoc"
   (:require [piotr-yuxuan.slava.decode :refer [decode]]
             [piotr-yuxuan.slava.encode :refer [encode]])

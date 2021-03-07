@@ -1,5 +1,5 @@
 (ns piotr-yuxuan.slava.clojure-deserializer
-  (:require [piotr-yuxuan.slava :as slava]
+  (:require [piotr-yuxuan.slava.core :as slava]
             [piotr-yuxuan.slava.config :as config]
             [byte-streams :as byte-streams])
   (:import (clojure.lang Atom)

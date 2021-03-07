@@ -1,6 +1,6 @@
 (ns piotr-yuxuan.slava.clojure-serializer
   "FIXME add cljdoc"
-  (:require [piotr-yuxuan.slava :as slava]
+  (:require [piotr-yuxuan.slava.core :as slava]
             [piotr-yuxuan.slava.config :as config]
             [piotr-yuxuan.slava.schema-registry :as schema-registry])
   (:import (io.confluent.kafka.schemaregistry ParsedSchema)
