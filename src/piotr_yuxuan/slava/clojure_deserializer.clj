@@ -1,56 +1,60 @@
 (ns piotr-yuxuan.slava.clojure-deserializer
   (:require [piotr-yuxuan.slava :as slava]
-            [piotr-yuxuan.slava.serde-properties :as serde-properties]
+            [piotr-yuxuan.slava.config :as config]
             [byte-streams :as byte-streams])
-  (:import (java.nio ByteBuffer)
+  (:import (clojure.lang Atom)
            (io.confluent.kafka.schemaregistry.client SchemaRegistryClient)
-           (io.confluent.kafka.schemaregistry.avro AvroSchema)
-           (piotr_yuxuan.slava ClojureDeserializer)
+           (io.confluent.kafka.serializers KafkaAvroDeserializer)
+           (io.confluent.kafka.streams.serdes.avro ClojureDeserializer)
+           (java.nio ByteBuffer)
            (java.util Map)
-           (io.confluent.kafka.schemaregistry ParsedSchema)
-           (io.confluent.kafka.serializers KafkaAvroDeserializerConfig))
+           (org.apache.avro.generic GenericContainer))
   (:gen-class
-    :name piotr_yuxuan.slava.ClojureDeserializer
-    :extends io.confluent.kafka.streams.serdes.avro.GenericAvroDeserializer
-    :exposes-methods {deserialize superDeserialize
-                      configure superConfigure}
+    :name io.confluent.kafka.streams.serdes.avro.ClojureDeserializer
+    :implements [org.apache.kafka.common.serialization.Deserializer]
+    :constructors {[] [], [io.confluent.kafka.schemaregistry.client.SchemaRegistryClient] []}
     :state state
-    :init init ;; as of now, not used
+    :init init
     :prefix "-"))
 
+(defrecord State
+  [^Atom config
+   ^KafkaAvroDeserializer kafka-avro-deserializer])
+
 (defn -init
+  "FIXME add cljdoc"
   ([]
-   [[] (atom {})])
+   [[] (State.
+         (atom nil)
+         (KafkaAvroDeserializer.))])
   ;; For testing purpose only
   ([^SchemaRegistryClient client]
-   [[client] (atom {:client client})]))
+   [[] (State.
+         (atom nil)
+         (KafkaAvroDeserializer. client))]))
 
 (defn resolve-schema-id
+  "FIXME add cljdoc"
   [^bytes data]
   (.getInt ^ByteBuffer (byte-streams/convert data ByteBuffer)))
 
-(defn resolve-schema
-  [this schema-id]
-  (let [^SchemaRegistryClient client (:client @(.-state this))
-        ^ParsedSchema parsed-schema (.getSchemaById client schema-id)]
-    (assert (instance? AvroSchema parsed-schema) "Don't know how to get AvroSchema.")
-    (.rawSchema ^AvroSchema parsed-schema)))
-
 (defn -deserialize
-  [this ^String topic ^bytes data]
-  (assert (:client @(.-state this)) "The schema registry client must be not null.")
-  (let [schema-id (resolve-schema-id data)
-        writer-schema (resolve-schema this schema-id)]
-    ;; FIXME We could probbly retrieve the schema from super. Would be much better
-    ;; FIXME Let's demand and make sure that we get a generic record from user config, and raise an exception otherwise.
+  "FIXME add cljdoc"
+  ^Map [^ClojureDeserializer this ^String topic ^bytes data]
+  (let [{:keys [config ^KafkaAvroDeserializer kafka-avro-deserializer]} (.-state this)
+        schema-id (resolve-schema-id data)
+        ^GenericContainer avro-data (.deserialize kafka-avro-deserializer topic data)
+        writer-schema (.getSchema avro-data)
+        ;; FIXME: how to get it?
+        reader-schema writer-schema]
     (with-meta
-      (->> data
-           (.superDeserialize this topic)
-           (slava/deserialize writer-schema))
+      (slava/deserialize @config reader-schema avro-data)
       {:piotr-yuxuan.slava/writer-schema writer-schema
        :piotr-yuxuan.slava/schema-id schema-id})))
 
 (defn -configure
-  [this ^Map configs isKey]
-  (swap! (.-state this) serde-properties/client-properties (KafkaAvroDeserializerConfig. configs) isKey)
-  (.superConfigure this configs isKey))
+  "FIXME add cljdoc"
+  [^ClojureDeserializer this ^Map configs isKey]
+  (let [{:keys [config ^KafkaAvroDeserializer kafka-avro-deserializer]} (.-state this)]
+    (reset! config (:slava (config/split-domains configs)))
+    (.configure kafka-avro-deserializer configs isKey)))

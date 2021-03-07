@@ -8,7 +8,7 @@
   :dependencies [[org.clojure/clojure "1.10.2"] ; provided
                  [org.apache.avro/avro "1.10.1"] ; should not be here?
                  [byte-streams "0.2.5-alpha2"]
-                 [metosin/reitit "0.5.12"] ; for malli
+                 [metosin/malli "0.3.0"]
                  [com.bakdata.fluent-kafka-streams-tests/schema-registry-mock "2.3.0"] ; should not be here?
                  [org.apache.kafka/kafka-streams-test-utils "5.3.1-ce"] ; should not be here?
                  [io.confluent/kafka-avro-serializer "6.1.0"] ; provided
@@ -21,7 +21,7 @@
   :javac-options ["-target" "1.8" "-source" "1.8"]
   :global-vars {*warn-on-reflection* true}
   :aliases {"kaocha" ["with-profile" "+kaocha" "run" "-m" "kaocha.runner" "--watch"]}
-  :profiles {:uberjar {:aot :all}
+  :profiles {:uberjar {:aot :all} ; https://clojure.org/reference/compilation#_compiler_options
              :dev {:dependencies [[org.slf4j/slf4j-nop "2.0.0-alpha1"]]
                    :source-paths ["dev"]
                    :resource-paths ["dev-resources"]}
@@ -33,7 +33,5 @@
                                    [com.bakdata.fluent-kafka-streams-tests/schema-registry-mock "2.3.0"]
                                    [org.apache.kafka/kafka-streams-test-utils "5.3.1-ce"]
                                    [kovacnica/clojure.network.ip "0.1.3"]]}
-             :kaocha [:test {:dependencies [[lambdaisland/kaocha "1.0.732"]]}]
-             :precomp {:source-paths ["src/main/clojure"]
-                       :aot [org.piotr-yuxuan.clj<->avro]}}
+             :kaocha [:test {:dependencies [[lambdaisland/kaocha "1.0.732"]]}]}
   :repositories [["confluent" "https://packages.confluent.io/maven/"]])

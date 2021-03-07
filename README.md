@@ -1,6 +1,6 @@
 # 🇷🇺 [slava](https://clojars.org/slava)
 
-[![Clojars Project](https://img.shields.io/clojars/v/org.piotr-yuxuan.svg)](https://clojars.org/com.slava)
+[![Clojars Project](https://img.shields.io/clojars/v/piotr-yuxuan.slava.svg)](https://clojars.org/com.slava)
 
 [![cljdoc badge](https://cljdoc.org/badge/com.slava/com.slava)](https://cljdoc.org/d/com.slava/com.slava)
 
@@ -44,9 +44,9 @@ manipulate Clojure datatypes within Kafka Streams and how to integrate
 custom Serde in your test code.
 
 ``` clojure
-(ns org.piotr-yuxuan.readme-test
+(ns piotr-yuxuan.slava.readme-test
   (:require [clojure.test :refer :all]
-            [org.piotr-yuxuan.conversion-native :as serde]
+            [piotr-yuxuan.slava.conversion-native :as serde]
             [clojure.network.ip :as ip]))
 
 (declare properties schema-registry schema-registry-client ip-array-input-topic ip-v4-output-topic)
@@ -79,7 +79,7 @@ custom Serde in your test code.
         (.flatMapValues (reify ValueMapper
                           (apply [_ record]
                             (map #(do {::address %})
-                                 (record :org.piotr-yuxuan.readme-test.Input/array)))))
+                                 (record :piotr-yuxuan.slava.readme-test.Input/array)))))
         (.filter (reify Predicate
                    (test [_ uuid record]
                      (->> ^IPAddress (record ::address)
@@ -88,24 +88,24 @@ custom Serde in your test code.
         (.mapValues (reify ValueMapper
                       (apply [_ record]
                         (clojure.set/rename-keys record
-                                                 {::address :org.piotr-yuxuan.readme-test.Output/address}))))
+                                                 {::address :piotr-yuxuan.slava.readme-test.Output/address}))))
         (.to ip-v4-output-topic))
     (.build builder)))
 
 (deftest kafka-streams-integration-test
   (with-open [^TopologyTestDriver test-driver (TopologyTestDriver. topology properties)]
-    (doseq [record (list {:org.piotr-yuxuan.readme-test.Input/array [(ip/make-ip-address "192.168.1.1")
+    (doseq [record (list {:piotr-yuxuan.slava.readme-test.Input/array [(ip/make-ip-address "192.168.1.1")
                                                               (ip/make-ip-address "1::1")]}
-                         {:org.piotr-yuxuan.readme-test.Input/array [(ip/make-ip-address "1::2")
+                         {:piotr-yuxuan.slava.readme-test.Input/array [(ip/make-ip-address "1::2")
                                                               (ip/make-ip-address "1::3")]}
-                         {:org.piotr-yuxuan.readme-test.Input/array [(ip/make-ip-address "192.168.1.2")
+                         {:piotr-yuxuan.slava.readme-test.Input/array [(ip/make-ip-address "192.168.1.2")
                                                               (ip/make-ip-address "192.168.1.3")]})]
       (.pipeInput test-driver [(.create consumer-record-factory ip-array-input-topic (UUID/randomUUID) record)]))
  ✅ (is (= (for [^ProducerRecord record (take-while some? (repeatedly #(.readOutput test-driver ip-v4-output-topic)))]
              (.deserialize (.deserializer value-avro-serde) ip-v4-output-topic (.value ^ProducerRecord record)))
-           (list {:org.piotr-yuxuan.readme-test.Output/address (ip/make-ip-address "192.168.1.1")}
-                 {:org.piotr-yuxuan.readme-test.Output/address (ip/make-ip-address "192.168.1.2")}
-                 {:org.piotr-yuxuan.readme-test.Output/address (ip/make-ip-address "192.168.1.3")})))))
+           (list {:piotr-yuxuan.slava.readme-test.Output/address (ip/make-ip-address "192.168.1.1")}
+                 {:piotr-yuxuan.slava.readme-test.Output/address (ip/make-ip-address "192.168.1.2")}
+                 {:piotr-yuxuan.slava.readme-test.Output/address (ip/make-ip-address "192.168.1.3")})))))
 
 
 ```

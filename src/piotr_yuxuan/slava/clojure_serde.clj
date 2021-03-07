@@ -1,51 +1,57 @@
 (ns piotr-yuxuan.slava.clojure-serde
+  "FIXME add cljdoc"
   (:require [piotr-yuxuan.slava.clojure-deserializer]
             [piotr-yuxuan.slava.clojure-serializer])
   (:import (io.confluent.kafka.schemaregistry.client SchemaRegistryClient)
+           (io.confluent.kafka.streams.serdes.avro ClojureSerde ClojureDeserializer ClojureSerializer)
            (java.util Map)
-           (org.apache.kafka.common.serialization Deserializer Serializer)
-           (piotr_yuxuan.slava ClojureDeserializer ClojureSerializer))
+           (org.apache.kafka.common.serialization Deserializer Serializer))
   (:gen-class
-    :name piotr_yuxuan.slava.ClojureSerde
+    :name io.confluent.kafka.streams.serdes.avro.ClojureSerde
     :implements [org.apache.kafka.common.serialization.Serde]
+    :constructors {[] [], [io.confluent.kafka.schemaregistry.client.SchemaRegistryClient] []}
     :state state
-    :init init ;; as of now, not used
+    :init init
     :prefix "-"))
 
-(defrecord SerdeState
+(defrecord State
   [^ClojureSerializer serializer
    ^ClojureDeserializer deserializer])
 
 (defn -init
+  "FIXME add cljdoc"
   ([]
-   [[] (SerdeState.
+   [[] (State.
          (ClojureSerializer.)
          (ClojureDeserializer.))])
   ;; For testing purpose only
   ([^SchemaRegistryClient client]
-   (assert client "The schema registry client must be not null.")
-   [[client] (SerdeState.
-               (ClojureSerializer. client)
-               (ClojureDeserializer. client))]))
+   [[] (State.
+         (ClojureSerializer. client)
+         (ClojureDeserializer. client))]))
 
 (defn -configure
-  [this ^Map configs isKey]
-  (.configure (:serializer (.-state this))
+  "FIXME add cljdoc"
+  [^ClojureSerde this ^Map configs isKey]
+  (.configure ^ClojureSerializer (:serializer (.-state this))
               configs
               isKey)
-  (.configure (:deserializer (.-state this))
+  (.configure ^ClojureDeserializer (:deserializer (.-state this))
               configs
               isKey))
 
 (defn -close
-  [this]
-  (.close (:serializer (.-state this)))
-  (.close (:deserializer (.-state this))))
+  "FIXME add cljdoc"
+  [^ClojureSerde this]
+  (.close ^ClojureSerializer (:serializer (.-state this)))
+  (.close ^ClojureDeserializer (:deserializer (.-state this))))
 
 (defn -serializer
-  ^Serializer [this]
+  "FIXME add cljdoc"
+  ^Serializer [^ClojureSerde this]
   (:serializer (.-state this)))
 
 (defn -deserializer
-  ^Deserializer [this]
+  "FIXME add cljdoc"
+  ^Deserializer [^ClojureSerde this]
   (:deserializer (.-state this)))
