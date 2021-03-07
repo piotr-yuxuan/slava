@@ -1,4 +1,5 @@
 (ns piotr-yuxuan.slava.config
+  "FIXME add cljdoc"
   (:require [piotr-yuxuan.slava.schema-registry :as schema-registry]
             [piotr-yuxuan.slava.decode :as decode]
             [piotr-yuxuan.slava.encode :as encode])
@@ -8,16 +9,19 @@
            (java.util Collection List Map)))
 
 (defn domain
+  "FIXME add cljdoc"
   [k]
   (if (schema-registry/config-keys k)
     :schema-registry
     :slava))
 
 (defn split-domains
+  "FIXME add cljdoc"
   [configs]
   (reduce-kv (fn [acc k v] (update acc (domain k) assoc k v)) {} configs))
 
 (def avro-decoders
+  "FIXME add cljdoc"
   #:decoder{:avro-record decode/avro-record
             :avro-enum nil
             :avro-array decode/avro-array
@@ -64,6 +68,7 @@
             :avro-null nil?})
 
 (def avro-encoders
+  "FIXME add cljdoc"
   #:encoder{:avro-record encode/avro-record
             :avro-enum nil
             :avro-array encode/avro-array
@@ -110,6 +115,7 @@
             :avro-null nil?})
 
 (def default
+  "FIXME add cljdoc"
   (merge
     {:record-key-fn (constantly nil)
      :clojure-types clojure-types
