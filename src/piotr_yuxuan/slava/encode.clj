@@ -9,12 +9,13 @@
 (defn encoder-name
   "FIXME add cljdoc"
   [^Schema avro-schema]
-  (let [schema-type (-> avro-schema (.getType) str csk/->kebab-case-string)
-        logical-type (some-> avro-schema (.getLogicalType) (.getName))]
-    (->> ["avro" schema-type logical-type]
-         (remove nil?)
-         (str/join "-")
-         (keyword "encoder"))))
+  (->> avro-schema
+       (.getType)
+       str
+       csk/->kebab-case-string
+       (conj ["avro"])
+       (str/join "-")
+       (keyword "encoder")))
 
 (declare -encoder-fn)
 
@@ -27,8 +28,8 @@
                               (let [value-encoder (-encoder-fn config (.schema field))
                                     field-name (.name field)]
                                 (cond (and value-encoder record-key) (fn [^GenericRecordBuilder record-builder ^Map m] (.set record-builder field-name (value-encoder (get m (record-key field-name)))))
-                                      (and value-encoder) (fn [^GenericRecordBuilder record-builder ^Map m] (.set record-builder field-name (value-encoder (get m field-name))))
-                                      (and record-key) (fn [^GenericRecordBuilder record-builder ^Map m] (.set record-builder field-name (get m (record-key field-name))))
+                                      value-encoder (fn [^GenericRecordBuilder record-builder ^Map m] (.set record-builder field-name (value-encoder (get m field-name))))
+                                      record-key (fn [^GenericRecordBuilder record-builder ^Map m] (.set record-builder field-name (get m (record-key field-name))))
                                       :else (fn [^GenericRecordBuilder record-builder ^Map m] (.set record-builder field-name (get m field-name))))))
                             (.getFields writer-schema))]
     (fn [data]
@@ -41,7 +42,8 @@
   "FIXME add cljdoc"
   [config ^Schema$ArraySchema writer-schema]
   (when-let [value-encoder (-encoder-fn config (.getElementType writer-schema))]
-    (fn [data] (map value-encoder data))))
+    (fn avro-array-youp [data]
+      (map value-encoder data))))
 
 (defn avro-map
   "FIXME add cljdoc"
@@ -50,33 +52,30 @@
         map-key (map-key-fn config writer-schema)
         value-encoder (-encoder-fn config (.getValueType writer-schema))]
     (cond (and map-key value-encoder) #(->> % (map (juxt (comp map-key key) (comp value-encoder val))) (into {}))
-          (and value-encoder) #(->> % (map (juxt key (comp value-encoder val))) (into {}))
-          (and map-key) #(->> % (map (juxt (comp map-key key) val)) (into {}))
+          value-encoder #(->> % (map (juxt key (comp value-encoder val))) (into {}))
+          map-key #(->> % (map (juxt (comp map-key key) val)) (into {}))
           :else nil)))
-
-(declare encode) ; You should most likely not use it, and prefer
-                 ; `-encoder-fn` instead.
 
 (defn avro-union
   "FIXME add cljdoc"
   [{:keys [clojure-types] :as config} ^Schema$UnionSchema writer-schema]
   (let [possible-encoders (->> (.getTypes writer-schema)
                                (map (juxt encoder-name (partial -encoder-fn config)))
-                               (remove (comp nil? second))
-                               ;; coercing into a map won't lead to
-                               ;; late k value overriding earlier k
-                               ;; value because it's prohibited in
-                               ;; Avro spec.
-                               (into {}))
-        encoded-types (select-keys clojure-types (keys possible-encoders))]
+                               (remove (comp nil? second)))
+        encoded-types (select-keys clojure-types (map first possible-encoders))
+        possible-encoders (into {} possible-encoders)]
     ;; If no types in the union need a encode, no need to find some.
     (when (seq encoded-types)
       (fn [data]
         (condp (fn trololo [t _] t) nil
-          (some data [:piotr-yuxuan.slava/writer-schema
-                      :piotr-yuxuan.slava/reader-schema
-                      :piotr-yuxuan.slava/schema])
-          :>> #(encode config % data)
+          (:piotr-yuxuan.slava/schema data)
+          :>> #((-encoder-fn config %) data)
+
+          (when-let [m (meta data)]
+            (some m [:piotr-yuxuan.slava/writer-schema
+                     :piotr-yuxuan.slava/reader-schema]))
+          ;; memoize?
+          :>> #((-encoder-fn config %) data)
 
           (some->> (some :piotr-yuxuan.slava/type [(meta data) data])
                    name
@@ -92,9 +91,13 @@
           ;; entry, or a record with one field. If you want certainty
           ;; to break a tie in a predictable way, see explicit
           ;; encoders above.
+          ;;
+          ;; We could use malli to observe what is the first matching
+          ;; type in the union. That would solve the map/record tie in
+          ;; the most common ways.
           (some (fn first-possible [[avro-type pred]] (when (pred data) avro-type))
                 encoded-types)
-          :>> #(% data)
+          :>> #((get possible-encoders %) data)
 
           ;; If the concrete type doesn't need to be encoded, return
           ;; datum as is.
@@ -103,8 +106,8 @@
 (defn -encoder-fn
   "FIXME add cljdoc"
   [config ^Schema writer-schema]
-  (when-let [encoder (get config (encoder-name writer-schema))]
-    (encoder config writer-schema)))
+  (when-let [encoder-fn-fn (get config (encoder-name writer-schema))]
+    (encoder-fn-fn config writer-schema)))
 
 (def ^{:arglists '([config ^org.apache.avro.Schema writer-schema])
        :doc "FIXME add cljdoc"}

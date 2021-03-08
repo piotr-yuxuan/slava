@@ -1,6 +1,6 @@
 .cpcache/
 .nrepl-port
-target/
+classes/
 /closeable-map.jar
 /*.asc
 /*.jar

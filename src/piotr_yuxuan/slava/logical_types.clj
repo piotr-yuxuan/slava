@@ -1,31 +1,50 @@
 (ns piotr-yuxuan.slava.logical-types
   "FIXME add cljdoc"
-  (:import (org.apache.avro LogicalType Schema SchemaBuilder Conversion Conversions$DecimalConversion Conversions$UUIDConversion)
-           (java.time Period)
-           (org.apache.avro.data TimeConversions$DateConversion TimeConversions$TimeMillisConversion TimeConversions$TimeMicrosConversion TimeConversions$TimestampMillisConversion TimeConversions$TimestampMicrosConversion)
-           (org.apache.avro.generic GenericData)))
+  (:require [byte-streams])
+  (:import (org.apache.avro LogicalType Schema Conversion Conversions$DecimalConversion Conversions$UUIDConversion)
+           (org.apache.avro.data TimeConversions$DateConversion TimeConversions$TimeMillisConversion TimeConversions$TimeMicrosConversion TimeConversions$TimestampMillisConversion TimeConversions$TimestampMicrosConversion TimeConversions$LocalTimestampMillisConversion TimeConversions$LocalTimestampMicrosConversion)
+           (org.apache.avro.generic GenericData GenericData$Fixed)
+           (java.nio ByteBuffer ByteOrder)
+           (java.util Map)))
 
-(def ^LogicalType duration-logical-type
+(def ^LogicalType duration
   "FIXME add cljdoc"
   (LogicalType. "duration"))
 
 (def ^Schema duration-schema
   "FIXME add cljdoc"
-  (.addToSchema duration-logical-type
-                (-> (SchemaBuilder/builder)
-                    (.fixed "duration")
-                    (.size 12))))
+  (.addToSchema duration (Schema/createFixed "duration" nil nil 12)))
 
-(defn duration-conversion []
-  "Not implemented in upstream avro Conversions." ;; TODO
+(defn duration-from-byte-array
+  "FIXME add cljdoc"
+  [ba]
+  (let [byte-buffer (doto ^ByteBuffer (byte-streams/convert ba ByteBuffer)
+                      (.order ByteOrder/LITTLE_ENDIAN))]
+    {:months (.getInt byte-buffer)
+     :days (.getInt byte-buffer)
+     :milliseconds (.getInt byte-buffer)}))
+
+(defn duration-to-byte-array
+  "FIXME add cljdoc"
+  [{:keys [months days milliseconds]}]
+  (->> (doto (ByteBuffer/allocate 12)
+         (.order ByteOrder/LITTLE_ENDIAN)
+         (.putInt (int months))
+         (.putInt (int days))
+         (.putInt (int milliseconds))
+         (.rewind))
+       byte-streams/to-byte-array))
+
+(def ^Conversion duration-conversion
+  "Not implemented in upstream avro Conversions."
   (proxy [Conversion] []
-    (getConvertedType [] Period)
+    (getConvertedType [] Map)
     (getRecommendedSchema [] duration-schema)
-    (getLogicalTypeName [] (.getName duration-logical-type))
-    (fromFixed [value schema type] value)
-    (toFixed [value schema type] value)))
+    (getLogicalTypeName [] (.getName duration))
+    (fromFixed [^GenericData$Fixed data _ _] (duration-from-byte-array (.bytes data)))
+    (toFixed [m schema _] (GenericData$Fixed. schema (duration-to-byte-array m)))))
 
-(defn add-all-conversions!
+(defn add-all-conversions
   "FIXME add cljdoc"
   ;; We are good citizens, we want to slip nicely into existing frameworks, whatever the pain on us.
   []
@@ -37,4 +56,6 @@
     (.addLogicalTypeConversion (TimeConversions$TimeMicrosConversion.))
     (.addLogicalTypeConversion (TimeConversions$TimestampMillisConversion.))
     (.addLogicalTypeConversion (TimeConversions$TimestampMicrosConversion.))
-    (.addLogicalTypeConversion (duration-conversion))))
+    (.addLogicalTypeConversion (TimeConversions$LocalTimestampMillisConversion.))
+    (.addLogicalTypeConversion (TimeConversions$LocalTimestampMicrosConversion.))
+    (.addLogicalTypeConversion duration-conversion)))

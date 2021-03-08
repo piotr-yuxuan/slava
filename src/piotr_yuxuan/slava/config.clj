@@ -8,8 +8,7 @@
            (org.apache.avro.util Utf8)
            (java.nio ByteBuffer)
            (java.util Collection List Map)
-           (org.apache.avro Schema Conversions$DecimalConversion Conversions$UUIDConversion)
-           (org.apache.avro.data TimeConversions$DateConversion TimeConversions$TimestampMillisConversion TimeConversions$TimeMicrosConversion TimeConversions$TimestampMicrosConversion TimeConversions$LocalTimestampMillisConversion TimeConversions$LocalTimestampMicrosConversion)
+           (org.apache.avro Schema Schema$EnumSchema)
            (io.confluent.kafka.serializers AbstractKafkaSchemaSerDeConfig)))
 
 (def config-keys
@@ -37,6 +36,16 @@
    :value-subject-name-strategy (.valueSubjectNameStrategy config)
    :use-schema-reflection (.useSchemaReflection config)})
 
+(defmacro conversion-coder
+  "FIXME add cljdoc"
+  [method]
+  (let [reader-schema (vary-meta (gensym "reader-schema") assoc :tag `Schema)]
+    `(fn [_# ~reader-schema]
+       (let [logical-type# (.getLogicalType ~reader-schema)]
+         (when-let [conversion# (.getConversionFor (GenericData/get) logical-type#)]
+           (fn [data#]
+             (~(symbol method) conversion# data# ~reader-schema logical-type#)))))))
+
 (def avro-decoders
   "FIXME add cljdoc"
   #:decoder{:avro-record decode/avro-record
@@ -46,60 +55,16 @@
             :avro-map decode/avro-map
             :avro-union decode/avro-union
             :avro-fixed nil
-            :avro-fixed-decimal (fn [_ ^Schema reader-schema]
-                                  (let [logical-type (.getLogicalType reader-schema)]
-                                    (when-let [^Conversions$DecimalConversion conversion (.getConversionFor (GenericData/get) logical-type)]
-                                      #(.fromFixed conversion % reader-schema logical-type))))
-            :avro-fixed-duration (fn [_ ^Schema reader-schema]
-                                   (let [logical-type (.getLogicalType reader-schema)]
-                                     (when-let [conversion (.getConversionFor (GenericData/get) logical-type)]
-                                       #(.fromFixed conversion % reader-schema logical-type))))
             :avro-string nil
-            :avro-string-uuid (fn [_ ^Schema reader-schema]
-                                (let [logical-type (.getLogicalType reader-schema)]
-                                  (when-let [^Conversions$UUIDConversion conversion (.getConversionFor (GenericData/get) logical-type)]
-                                    #(.fromCharSequence conversion % reader-schema logical-type))))
             :avro-bytes nil
-            :avro-bytes-decimal (fn [_ ^Schema reader-schema]
-                                  (let [logical-type (.getLogicalType reader-schema)]
-                                    (when-let [^Conversions$DecimalConversion conversion (.getConversionFor (GenericData/get) logical-type)]
-                                      #(.fromBytes conversion % reader-schema logical-type))))
             :avro-int nil
-            :avro-int-date (fn [_ ^Schema reader-schema]
-                             (let [logical-type (.getLogicalType reader-schema)]
-                               (when-let [^TimeConversions$DateConversion conversion (.getConversionFor (GenericData/get) logical-type)]
-                                 #(.fromInt conversion % reader-schema logical-type))))
-            :avro-int-time-millis (fn [_ ^Schema reader-schema]
-                                    (let [logical-type (.getLogicalType reader-schema)]
-                                      (when-let [^TimeConversions$TimestampMillisConversion conversion (.getConversionFor (GenericData/get) logical-type)]
-                                        #(.fromInt conversion % reader-schema logical-type))))
             :avro-long nil
-            :avro-long-time-micros (fn [_ ^Schema reader-schema]
-                                     (let [logical-type (.getLogicalType reader-schema)]
-                                       (when-let [^TimeConversions$TimeMicrosConversion conversion (.getConversionFor (GenericData/get) logical-type)]
-                                         #(.fromLong conversion % reader-schema logical-type))))
-            :avro-long-timestamp-millis (fn [_ ^Schema reader-schema]
-                                          (let [logical-type (.getLogicalType reader-schema)]
-                                            (when-let [^TimeConversions$TimestampMillisConversion conversion (.getConversionFor (GenericData/get) logical-type)]
-                                              #(.fromLong conversion % reader-schema logical-type))))
-            :avro-long-timestamp-micros (fn [_ ^Schema reader-schema]
-                                          (let [logical-type (.getLogicalType reader-schema)]
-                                            (when-let [^TimeConversions$TimestampMicrosConversion conversion (.getConversionFor (GenericData/get) logical-type)]
-                                              #(.fromLong conversion % reader-schema logical-type))))
-            :avro-long-local-timestamp-millis (fn [_ ^Schema reader-schema]
-                                                (let [logical-type (.getLogicalType reader-schema)]
-                                                  (when-let [^TimeConversions$LocalTimestampMillisConversion conversion (.getConversionFor (GenericData/get) logical-type)]
-                                                    #(.fromLong conversion % reader-schema logical-type))))
-            :avro-long-local-timestamp-micros (fn [_ ^Schema reader-schema]
-                                                (let [logical-type (.getLogicalType reader-schema)]
-                                                  (when-let [^TimeConversions$LocalTimestampMicrosConversion conversion (.getConversionFor (GenericData/get) logical-type)]
-                                                    #(.fromLong conversion % reader-schema logical-type))))
             :avro-float nil
             :avro-double nil
             :avro-boolean nil
             :avro-null nil})
 
-(def java-types
+(def generic-concrete-types
   "Concrete types returned by GenericAvroSerde. You probably don't need to change them if you're getting started."
   ;; It's important to have all of them to resolve unions and further decode any nested datum when there is a need.
   #:decoder{:avro-record #(instance? GenericData$Record %)
@@ -126,54 +91,10 @@
             :avro-map encode/avro-map
             :avro-union encode/avro-union
             :avro-fixed nil
-            :avro-fixed-decimal (fn [_ ^Schema reader-schema]
-                                  (let [logical-type (.getLogicalType reader-schema)]
-                                    (when-let [^Conversions$DecimalConversion conversion (.getConversionFor (GenericData/get) logical-type)]
-                                      #(.toFixed conversion % reader-schema logical-type))))
-            :avro-fixed-duration (fn [_ ^Schema reader-schema]
-                                   (let [logical-type (.getLogicalType reader-schema)]
-                                     (when-let [conversion (.getConversionFor (GenericData/get) logical-type)]
-                                       #(.toFixed conversion % reader-schema logical-type))))
             :avro-string nil
-            :avro-string-uuid (fn [_ ^Schema reader-schema]
-                                (let [logical-type (.getLogicalType reader-schema)]
-                                  (when-let [^Conversions$UUIDConversion conversion (.getConversionFor (GenericData/get) logical-type)]
-                                    #(.toCharSequence conversion % reader-schema logical-type))))
             :avro-bytes nil
-            :avro-bytes-decimal (fn [_ ^Schema reader-schema]
-                                  (let [logical-type (.getLogicalType reader-schema)]
-                                    (when-let [^Conversions$DecimalConversion conversion (.getConversionFor (GenericData/get) logical-type)]
-                                      #(.toBytes conversion % reader-schema logical-type))))
             :avro-int nil
-            :avro-int-date (fn [_ ^Schema reader-schema]
-                             (let [logical-type (.getLogicalType reader-schema)]
-                               (when-let [^TimeConversions$DateConversion conversion (.getConversionFor (GenericData/get) logical-type)]
-                                 #(.toInt conversion % reader-schema logical-type))))
-            :avro-int-time-millis (fn [_ ^Schema reader-schema]
-                                    (let [logical-type (.getLogicalType reader-schema)]
-                                      (when-let [^TimeConversions$TimestampMillisConversion conversion (.getConversionFor (GenericData/get) logical-type)]
-                                        #(.toInt conversion % reader-schema logical-type))))
             :avro-long nil
-            :avro-long-time-micros (fn [_ ^Schema reader-schema]
-                                     (let [logical-type (.getLogicalType reader-schema)]
-                                       (when-let [^TimeConversions$TimeMicrosConversion conversion (.getConversionFor (GenericData/get) logical-type)]
-                                         #(.toLong conversion % reader-schema logical-type))))
-            :avro-long-timestamp-millis (fn [_ ^Schema reader-schema]
-                                          (let [logical-type (.getLogicalType reader-schema)]
-                                            (when-let [^TimeConversions$TimestampMillisConversion conversion (.getConversionFor (GenericData/get) logical-type)]
-                                              #(.toLong conversion % reader-schema logical-type))))
-            :avro-long-timestamp-micros (fn [_ ^Schema reader-schema]
-                                          (let [logical-type (.getLogicalType reader-schema)]
-                                            (when-let [^TimeConversions$TimestampMicrosConversion conversion (.getConversionFor (GenericData/get) logical-type)]
-                                              #(.toLong conversion % reader-schema logical-type))))
-            :avro-long-local-timestamp-millis (fn [_ ^Schema reader-schema]
-                                                (let [logical-type (.getLogicalType reader-schema)]
-                                                  (when-let [^TimeConversions$LocalTimestampMillisConversion conversion (.getConversionFor (GenericData/get) logical-type)]
-                                                    #(.toLong conversion % reader-schema logical-type))))
-            :avro-long-local-timestamp-micros (fn [_ ^Schema reader-schema]
-                                                (let [logical-type (.getLogicalType reader-schema)]
-                                                  (when-let [^TimeConversions$LocalTimestampMicrosConversion conversion (.getConversionFor (GenericData/get) logical-type)]
-                                                    #(.toLong conversion % reader-schema logical-type))))
             :avro-float nil
             :avro-double nil
             :avro-boolean nil
@@ -202,7 +123,7 @@
   (merge
     {:record-key-fn (constantly nil)
      :clojure-types clojure-types
-     :java-types java-types}
+     :generic-concrete-types generic-concrete-types}
     avro-decoders
     avro-encoders))
 
@@ -211,10 +132,10 @@
   (assoc default
     :record-key-fn (constantly csk/->kebab-case-keyword)
 
-    :decoder/avro-enum (constantly csk/->kebab-case-keyword)
-    :encoder/avro-enum (constantly csk/->SCREAMING_SNAKE_CASE_STRING)
+    :decoder/avro-enum (constantly (comp csk/->kebab-case-keyword str))
+    :encoder/avro-enum (fn [_ ^Schema$EnumSchema writer-schema] #(GenericData$EnumSymbol. writer-schema (csk/->SCREAMING_SNAKE_CASE_STRING %)))
 
-    :decoder/map-key-fn (constantly keyword)
+    :decoder/map-key-fn (fn [{:keys [field-name]} _] (partial keyword field-name))
     :encoder/map-key-fn (constantly name)
 
     ;; avoid Utf8

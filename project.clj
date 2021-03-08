@@ -13,4 +13,6 @@
   :global-vars {*warn-on-reflection* true}
   :plugins [[lein-tools-deps "0.4.5"]]
   :middleware [lein-tools-deps.plugin/resolve-dependencies-with-deps-edn]
-  :lein-tools-deps/config {:config-files [:project]})
+  :lein-tools-deps/config {:config-files [:project]}
+  :resolve-aliases [:test]
+  :repositories [["confluent" "https://packages.confluent.io/maven/"]])

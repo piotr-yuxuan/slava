@@ -47,10 +47,11 @@
         writer-schema (.getSchema avro-data)
         ;; FIXME: how to get it?
         reader-schema writer-schema]
-    (with-meta
+    (vary-meta
       (decode @config reader-schema avro-data)
-      {:piotr-yuxuan.slava/writer-schema writer-schema
-       :piotr-yuxuan.slava/schema-id schema-id})))
+      assoc
+      :piotr-yuxuan.slava/writer-schema writer-schema
+      :piotr-yuxuan.slava/schema-id schema-id)))
 
 (defn -configure
   "FIXME add cljdoc"
