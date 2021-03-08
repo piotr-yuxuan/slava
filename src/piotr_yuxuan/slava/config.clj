@@ -9,12 +9,17 @@
            (java.nio ByteBuffer)
            (java.util Collection List Map)
            (org.apache.avro Schema Conversions$DecimalConversion Conversions$UUIDConversion)
-           (org.apache.avro.data TimeConversions$DateConversion TimeConversions$TimestampMillisConversion TimeConversions$TimeMicrosConversion TimeConversions$TimestampMicrosConversion TimeConversions$LocalTimestampMillisConversion TimeConversions$LocalTimestampMicrosConversion)))
+           (org.apache.avro.data TimeConversions$DateConversion TimeConversions$TimestampMillisConversion TimeConversions$TimeMicrosConversion TimeConversions$TimestampMicrosConversion TimeConversions$LocalTimestampMillisConversion TimeConversions$LocalTimestampMicrosConversion)
+           (io.confluent.kafka.serializers AbstractKafkaSchemaSerDeConfig)))
+
+(def config-keys
+  "FIXME add cljdoc"
+  (set (.names (AbstractKafkaSchemaSerDeConfig/baseConfigDef))))
 
 (defn domain
   "FIXME add cljdoc"
   [k]
-  (if (schema-registry/config-keys k)
+  (if (config-keys k)
     :schema-registry
     :slava))
 
@@ -22,6 +27,15 @@
   "FIXME add cljdoc"
   [configs]
   (reduce-kv (fn [acc k v] (update acc (domain k) assoc k v)) {} configs))
+
+(defn schema-registry
+  "FIXME add cljdoc"
+  [{:keys [client]} ^AbstractKafkaSchemaSerDeConfig config isKey]
+  {:client (or client (schema-registry/new-client config))
+   :isKey isKey
+   :key-subject-name-strategy (.keySubjectNameStrategy config)
+   :value-subject-name-strategy (.valueSubjectNameStrategy config)
+   :use-schema-reflection (.useSchemaReflection config)})
 
 (def avro-decoders
   "FIXME add cljdoc"

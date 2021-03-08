@@ -22,16 +22,3 @@
         providers
         (.originalsWithPrefix config "FIXME add cljdoc")
         (.requestHeaders config)))))
-
-(def config-keys
-  "FIXME add cljdoc"
-  (set (.names (AbstractKafkaSchemaSerDeConfig/baseConfigDef))))
-
-(defn config
-  "FIXME add cljdoc"
-  [{:keys [client]} ^AbstractKafkaSchemaSerDeConfig config isKey]
-  {:client (or client (new-client config))
-   :isKey isKey
-   :key-subject-name-strategy (.keySubjectNameStrategy config)
-   :value-subject-name-strategy (.valueSubjectNameStrategy config)
-   :use-schema-reflection (.useSchemaReflection config)})

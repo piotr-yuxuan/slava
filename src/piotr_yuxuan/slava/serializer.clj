@@ -1,8 +1,7 @@
 (ns piotr-yuxuan.slava.serializer
   "FIXME add cljdoc"
   (:require [piotr-yuxuan.slava.encode :refer [encode]]
-            [piotr-yuxuan.slava.config :as config]
-            [piotr-yuxuan.slava.schema-registry :as schema-registry])
+            [piotr-yuxuan.slava.config :as config])
   (:import (io.confluent.kafka.schemaregistry ParsedSchema)
            (io.confluent.kafka.schemaregistry.avro AvroSchema)
            (io.confluent.kafka.schemaregistry.client SchemaRegistryClient)
@@ -81,4 +80,4 @@
     (doto (.-state this)
       (->> deref :kafka-avro-serializer (#(.configure ^KafkaAvroSerializer % configs isKey))) ;trololo
       (swap! assoc :config slava)
-      (swap! update :schema-registry schema-registry/config (KafkaAvroSerializerConfig. schema-registry) isKey))))
+      (swap! update :schema-registry config/schema-registry (KafkaAvroSerializerConfig. schema-registry) isKey))))
