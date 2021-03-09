@@ -1,3 +1,5 @@
+# Development
+
 Invoking the function provided by this library from the command-line:
 
 FIXME add cljdoc
@@ -83,7 +85,7 @@ and:
 mvn deploy -DaltDeploymentRepository=github::default::https://maven.pkg.github.com/piotr-yuxuan/slava
 ```
 
-# Notes on `pom.xml`
+# Notes on pom.xml
 
 If you don't plan to install/deploy the library, you can remove the
 `pom.xml` file but you will also need to remove `:sync-pom true` from
