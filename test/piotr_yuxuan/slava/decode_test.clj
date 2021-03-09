@@ -60,7 +60,18 @@
                          (.set "field" 1)))]
     (testing "map is properly decoded, as are its values"
       (is (= (map-decoder {"field" {"field" record}})
-             {"field" {"field" {"field" 1}}})))))
+             {"field" {"field" {"field" 1}}}))))
+  (testing "opinionated config on field-name"
+    (let [map-schema (-> (SchemaBuilder/builder) .map .values .longType)
+          record-schema (-> (SchemaBuilder/builder)
+                            ^SchemaBuilder$NamespacedBuilder (.record "RecordSchema")
+                            ^SchemaBuilder$FieldAssembler .fields
+                            (.name "prefix") (.type map-schema) .noDefault
+                            ^GenericData$Record .endRecord)
+          union-decoder (decode/avro-record config/opinionated record-schema)
+          record (.build (doto (GenericRecordBuilder. record-schema)
+                           (.set "prefix" {"map-entry" 1})))]
+      (union-decoder record))))
 
 (deftest avro-union-test
   (let [;; All concrete, non-container types

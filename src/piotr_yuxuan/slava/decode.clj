@@ -58,7 +58,10 @@
   [config ^Schema$MapSchema reader-schema]
   (let [{:decoder/keys [map-key-fn]} config
         map-key (map-key-fn config reader-schema)
-        value-decoder (-decoder-fn config (.getValueType reader-schema))
+        value-decoder (-decoder-fn
+                        ;; Don't proprate field-name any deeper
+                        (dissoc config :field-name)
+                        (.getValueType reader-schema))
         meta-wrapper #(vary-meta %
                                  assoc
                                  :piotr-yuxuan.slava/type :avro-map

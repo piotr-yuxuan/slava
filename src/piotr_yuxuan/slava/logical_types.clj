@@ -27,13 +27,13 @@
 (defn duration-to-byte-array
   "FIXME add cljdoc"
   [{:keys [months days milliseconds]}]
-  (->> (doto (ByteBuffer/allocate 12)
-         (.order ByteOrder/LITTLE_ENDIAN)
-         (.putInt (int months))
-         (.putInt (int days))
-         (.putInt (int milliseconds))
-         (.rewind))
-       byte-streams/to-byte-array))
+  (byte-streams/to-byte-array
+    (doto (ByteBuffer/allocate 12)
+      (.order ByteOrder/LITTLE_ENDIAN)
+      (.putInt (int months))
+      (.putInt (int days))
+      (.putInt (int milliseconds))
+      (.rewind))))
 
 (def ^Conversion duration-conversion
   "Not implemented in upstream avro Conversions."

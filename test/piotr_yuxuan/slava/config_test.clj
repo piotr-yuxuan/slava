@@ -26,13 +26,13 @@
 (deftest conversion-coder-test
   (let [config {}
         logical-decoder-fn (config/conversion-coder .fromInt)
-        logical-decoder (logical-decoder-fn config (-> (LogicalTypes/date) (.addToSchema (Schema/create Schema$Type/INT))))]
+        logical-decoder (logical-decoder-fn config (.addToSchema (LogicalTypes/date) (Schema/create Schema$Type/INT)))]
     (testing "decoding"
       (are [x y] =
         (LocalDate/parse "1970-01-01") (logical-decoder (int 0))
         (LocalDate/parse "1973-08-30") (logical-decoder (int 1337))))
     (let [logical-encoder-fn (config/conversion-coder .toInt)
-          logical-encoder (logical-encoder-fn config (-> (LogicalTypes/date) (.addToSchema (Schema/create Schema$Type/INT))))]
+          logical-encoder (logical-encoder-fn config (.addToSchema (LogicalTypes/date) (Schema/create Schema$Type/INT)))]
       (testing "encoding"
         (are [x y] =
           0 (logical-encoder (LocalDate/parse "1970-01-01"))
