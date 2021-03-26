@@ -3,7 +3,8 @@
   (:require [piotr-yuxuan.slava.deserializer]
             [piotr-yuxuan.slava.serializer])
   (:import (io.confluent.kafka.schemaregistry.client SchemaRegistryClient)
-           (io.confluent.kafka.streams.serdes.avro ClojureSerde ClojureDeserializer ClojureSerializer)
+           (io.confluent.kafka.streams.serdes.avro ClojureSerde)
+           (io.confluent.kafka.serializers ClojureDeserializer ClojureSerializer)
            (java.util Map)
            (org.apache.kafka.common.serialization Deserializer Serializer))
   (:gen-class

@@ -5,14 +5,13 @@
   (:import (io.confluent.kafka.schemaregistry ParsedSchema)
            (io.confluent.kafka.schemaregistry.avro AvroSchema)
            (io.confluent.kafka.schemaregistry.client SchemaRegistryClient)
-           (io.confluent.kafka.serializers KafkaAvroSerializerConfig KafkaAvroSerializer)
+           (io.confluent.kafka.serializers ClojureSerializer KafkaAvroSerializerConfig KafkaAvroSerializer)
            (io.confluent.kafka.serializers.subject TopicNameStrategy)
            (io.confluent.kafka.serializers.subject.strategy SubjectNameStrategy)
-           (io.confluent.kafka.streams.serdes.avro ClojureSerializer)
            (java.util Map)
            (org.apache.avro Schema))
   (:gen-class
-    :name io.confluent.kafka.streams.serdes.avro.ClojureSerializer
+    :name io.confluent.kafka.serializers.ClojureSerializer
     :implements [org.apache.kafka.common.serialization.Serializer]
     :constructors {[] [], [io.confluent.kafka.schemaregistry.client.SchemaRegistryClient] []}
     :state state

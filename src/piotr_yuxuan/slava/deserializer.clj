@@ -4,13 +4,12 @@
             [byte-streams :as byte-streams])
   (:import (clojure.lang Atom)
            (io.confluent.kafka.schemaregistry.client SchemaRegistryClient)
-           (io.confluent.kafka.serializers KafkaAvroDeserializer)
-           (io.confluent.kafka.streams.serdes.avro ClojureDeserializer)
+           (io.confluent.kafka.serializers ClojureDeserializer KafkaAvroDeserializer)
            (java.nio ByteBuffer)
            (java.util Map)
            (org.apache.avro.generic GenericContainer))
   (:gen-class
-    :name io.confluent.kafka.streams.serdes.avro.ClojureDeserializer
+    :name io.confluent.kafka.serializers.ClojureDeserializer
     :implements [org.apache.kafka.common.serialization.Deserializer]
     :constructors {[] [], [io.confluent.kafka.schemaregistry.client.SchemaRegistryClient] []}
     :state state
