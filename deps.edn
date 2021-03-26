@@ -2,7 +2,6 @@
  :deps {org.clojure/clojure {:mvn/version "1.10.2"}
         org.apache.avro/avro {:mvn/version "1.10.1"}
         byte-streams/byte-streams {:mvn/version "0.2.5-alpha2"}
-        metosin/malli {:mvn/version "0.3.0"}
         io.confluent/kafka-avro-serializer {:mvn/version "6.1.0"}
         camel-snake-kebab/camel-snake-kebab {:mvn/version "0.4.2"}}
  :mvn/repos

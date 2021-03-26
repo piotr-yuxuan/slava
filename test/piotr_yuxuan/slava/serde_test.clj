@@ -1,12 +1,11 @@
 (ns piotr-yuxuan.slava.serde-test
   (:require [clojure.test :refer :all]
-            [piotr-yuxuan.slava.config :as config]
-            [piotr-yuxuan.slava.logical-types :as logical-types])
+            [piotr-yuxuan.slava.duration :as logical-types])
   (:import (io.confluent.kafka.serializers AbstractKafkaSchemaSerDeConfig)
            (io.confluent.kafka.streams.serdes.avro GenericAvroSerde ClojureSerde)
            (io.confluent.kafka.schemaregistry.client MockSchemaRegistryClient)
            (org.apache.kafka.common.serialization Serializer Deserializer)
-           (org.apache.avro SchemaBuilder Schema SchemaBuilder$NamespacedBuilder SchemaBuilder$RecordBuilder SchemaBuilder$FieldAssembler SchemaBuilder$MapDefault SchemaBuilder$UnionAccumulator SchemaBuilder$FieldDefault SchemaBuilder$FixedBuilder)
+           (org.apache.avro SchemaBuilder SchemaBuilder$NamespacedBuilder SchemaBuilder$RecordBuilder SchemaBuilder$FieldAssembler SchemaBuilder$MapDefault SchemaBuilder$UnionAccumulator SchemaBuilder$FieldDefault SchemaBuilder$FixedBuilder)
            (org.apache.avro.generic GenericData$Record GenericRecordBuilder)))
 
 (def topic "topic-name")
@@ -30,7 +29,7 @@
                          .array
                          (.items (-> (SchemaBuilder/builder)
                                      .array
-                                     (.items logical-types/duration-schema))))
+                                     (.items logical-types/schema))))
         record-schema (-> (SchemaBuilder/builder)
                           ^SchemaBuilder$NamespacedBuilder (.record "Record")
                           ^SchemaBuilder$RecordBuilder (.namespace "piotr-yuxuan.slava.old_test")
@@ -40,6 +39,6 @@
                           ^GenericData$Record .endRecord)]
     (.build (doto (GenericRecordBuilder. record-schema)
               (.set "field" (int 1))
-              (.set "arraySchema" [[(.toFixed logical-types/duration-conversion {:months 1 :days 2 :milliseconds 3} array-schema logical-types/duration) (.toFixed logical-types/duration-conversion {:months 1 :days 2 :milliseconds 3} array-schema logical-types/duration)]
-                                   [(.toFixed logical-types/duration-conversion {:months 1 :days 2 :milliseconds 3} array-schema logical-types/duration)]
+              (.set "arraySchema" [[(.toFixed logical-types/conversion {:months 1 :days 2 :milliseconds 3} array-schema logical-types/logical-type) (.toFixed logical-types/conversion {:months 1 :days 2 :milliseconds 3} array-schema logical-types/logical-type)]
+                                   [(.toFixed logical-types/conversion {:months 1 :days 2 :milliseconds 3} array-schema logical-types/logical-type)]
                                    []])))))

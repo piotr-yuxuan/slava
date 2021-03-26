@@ -1,50 +1,13 @@
 (ns piotr-yuxuan.slava.config
   "FIXME add cljdoc"
-  (:require [piotr-yuxuan.slava.schema-registry :as schema-registry]
-            [piotr-yuxuan.slava.decode :as decode]
+  (:require [piotr-yuxuan.slava.decode :as decode]
             [piotr-yuxuan.slava.encode :as encode]
             [camel-snake-kebab.core :as csk])
-  (:import (org.apache.avro.generic GenericData$EnumSymbol GenericData$Record GenericData)
+  (:import (org.apache.avro.generic GenericData$EnumSymbol GenericData$Record)
            (org.apache.avro.util Utf8)
            (java.nio ByteBuffer)
            (java.util Collection List Map)
-           (org.apache.avro Schema Schema$EnumSchema)
-           (io.confluent.kafka.serializers AbstractKafkaSchemaSerDeConfig)))
-
-(def config-keys
-  "FIXME add cljdoc"
-  (set (.names (AbstractKafkaSchemaSerDeConfig/baseConfigDef))))
-
-(defn domain
-  "FIXME add cljdoc"
-  [k]
-  (if (config-keys k)
-    :schema-registry
-    :slava))
-
-(defn split-domains
-  "FIXME add cljdoc"
-  [configs]
-  (reduce-kv (fn [acc k v] (update acc (domain k) assoc k v)) {} configs))
-
-(defn schema-registry
-  "FIXME add cljdoc"
-  [{:keys [client]} ^AbstractKafkaSchemaSerDeConfig config isKey]
-  {:client (or client (schema-registry/new-client config))
-   :isKey isKey
-   :key-subject-name-strategy (.keySubjectNameStrategy config)
-   :value-subject-name-strategy (.valueSubjectNameStrategy config)
-   :use-schema-reflection (.useSchemaReflection config)})
-
-(defmacro conversion-coder
-  "FIXME add cljdoc"
-  [method]
-  (let [reader-schema (vary-meta (gensym "reader-schema") assoc :tag `Schema)]
-    `(fn [_# ~reader-schema]
-       (let [logical-type# (.getLogicalType ~reader-schema)]
-         (when-let [conversion# (.getConversionFor (GenericData/get) logical-type#)]
-           (fn [data#]
-             (~(symbol method) conversion# data# ~reader-schema logical-type#)))))))
+           (org.apache.avro Schema$EnumSchema)))
 
 (def avro-decoders
   "FIXME add cljdoc"
