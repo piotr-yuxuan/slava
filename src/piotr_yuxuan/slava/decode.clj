@@ -103,5 +103,5 @@
 
 (defn decode
   "FIXME add cljdoc"
-  [config ^Schema reader-schema data]
+  [config data ^Schema reader-schema]
   ((decoder-fn config reader-schema) data))

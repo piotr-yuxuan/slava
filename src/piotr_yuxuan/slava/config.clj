@@ -9,6 +9,10 @@
            (java.util Collection List Map)
            (org.apache.avro Schema$EnumSchema)))
 
+(defn slava-key?
+  [k]
+  (not (string? k)))
+
 (def avro-decoders
   "FIXME add cljdoc"
   #:decoder{:avro-record decode/avro-record

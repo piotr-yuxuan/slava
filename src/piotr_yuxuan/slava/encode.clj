@@ -117,5 +117,5 @@
 
 (defn encode
   "FIXME add cljdoc"
-  [config ^Schema writer-schema data]
+  [config data ^Schema writer-schema]
   ((encoder-fn config writer-schema) data))
