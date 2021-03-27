@@ -1,4 +1,4 @@
-(ns piotr-yuxuan.slava.serde
+(ns piotr-yuxuan.slava
   "FIXME add cljdoc"
   (:require [piotr-yuxuan.slava.encode :refer [encode]]
             [piotr-yuxuan.slava.decode :refer [decode]]
@@ -107,10 +107,10 @@
    (doto (deserializer inner-client)
      (.configure config key?))))
 
-(defn ^Serde ->Serde
+(defn ^Serde serde
   ([inner-client]
    (Serdes/serdeFrom (serializer inner-client)
                      (deserializer inner-client)))
   ([inner-client config key?]
-   (doto (->Serde inner-client)
+   (doto (serde inner-client)
      (.configure config key?))))

@@ -1,6 +1,6 @@
-(ns piotr-yuxuan.slava.serde-test
+(ns piotr-yuxuan.slava-test
   (:require [clojure.test :refer :all]
-            [piotr-yuxuan.slava.serde :as slava]
+            [piotr-yuxuan.slava :as slava]
             [piotr-yuxuan.slava.duration :as logical-types])
   (:import (io.confluent.kafka.serializers AbstractKafkaSchemaSerDeConfig KafkaAvroSerializerConfig)
            (io.confluent.kafka.streams.serdes.avro GenericAvroSerde)
@@ -21,7 +21,7 @@
                 (boolean (not :key)))))
 
 (def ^GenericAvroSerde slava-serde
-  (doto (slava/->Serde schema-registry)
+  (doto (slava/serde schema-registry)
     (.configure {AbstractKafkaSchemaSerDeConfig/SCHEMA_REGISTRY_URL_CONFIG "mock://"}
                 (boolean (not :key)))))
 
