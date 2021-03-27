@@ -17,7 +17,7 @@
     </license>
   </licenses>
   <scm>
-    <url>https://github.com/piotr-yuxuan/slava.git</url>
+    <url>https://github.com/piotr-yuxuan/slava</url>
     <connection>scm:git:git://github.com/piotr-yuxuan/slava.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/piotr-yuxuan/slava.git</developerConnection>
     <tag>ddf005568430586b6495c9b38b75b406f2f5b1bf</tag>
