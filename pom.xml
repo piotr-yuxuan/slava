@@ -4,7 +4,7 @@
   <groupId>piotr-yuxuan</groupId>
   <artifactId>slava</artifactId>
   <packaging>jar</packaging>
-  <version>0.13.0</version>
+  <version>0.14.0</version>
   <name>slava</name>
   <description>Kafka Avro Serde for Clojure</description>
   <url>https://github.com/piotr-yuxuan/slava</url>
@@ -89,11 +89,6 @@
       <groupId>byte-streams</groupId>
       <artifactId>byte-streams</artifactId>
       <version>0.2.5-alpha2</version>
-    </dependency>
-    <dependency>
-      <groupId>metosin</groupId>
-      <artifactId>malli</artifactId>
-      <version>0.3.0</version>
     </dependency>
     <dependency>
       <groupId>io.confluent</groupId>
