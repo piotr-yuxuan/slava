@@ -11,37 +11,37 @@
 
 (def topic "topic-name")
 
-(def inner-config
+(def avro-config
   {AbstractKafkaSchemaSerDeConfig/SCHEMA_REGISTRY_URL_CONFIG "mock://"})
 
 (deftest subject-name-test
   (is (= (slava/subject-name
            {:key? true
-            :subject-name-strategy (.keySubjectNameStrategy (KafkaAvroSerializerConfig. inner-config))}
+            :subject-name-strategy (.keySubjectNameStrategy (KafkaAvroSerializerConfig. avro-config))}
            topic)
          "topic-name-key"))
   (is (= (slava/subject-name
            {:key? false
-            :subject-name-strategy (.valueSubjectNameStrategy (KafkaAvroSerializerConfig. inner-config))}
+            :subject-name-strategy (.valueSubjectNameStrategy (KafkaAvroSerializerConfig. avro-config))}
            topic)
          "topic-name-value")))
 
 (deftest resolve-subject-name-test
   (is (= (slava/resolve-subject-name
            {:key? true
-            :subject-name-strategy (.keySubjectNameStrategy (KafkaAvroSerializerConfig. inner-config))}
+            :subject-name-strategy (.keySubjectNameStrategy (KafkaAvroSerializerConfig. avro-config))}
            topic
            {})
          "topic-name-key"))
   (is (= (slava/resolve-subject-name
            {:key? false
-            :subject-name-strategy (.keySubjectNameStrategy (KafkaAvroSerializerConfig. inner-config))}
+            :subject-name-strategy (.keySubjectNameStrategy (KafkaAvroSerializerConfig. avro-config))}
            topic
            {})
          "topic-name-value"))
   (is (= (slava/resolve-subject-name
            {:key? true
-            :subject-name-strategy (.keySubjectNameStrategy (KafkaAvroSerializerConfig. inner-config))}
+            :subject-name-strategy (.keySubjectNameStrategy (KafkaAvroSerializerConfig. avro-config))}
            topic
            (with-meta {} {:piotr-yuxuan.slava/subject-name "custom-subject-name"}))
          "custom-subject-name")))
@@ -155,38 +155,38 @@
   (let [key? false
         inner-client (doto (MockSchemaRegistryClient.)
                        (.register "topic-name-value" (AvroSchema. schema) version-id schema-id))
-        generic-avro-serde (doto (GenericAvroSerde. inner-client)
-                             (.configure inner-config key?))
-        slava-serde (doto (slava/serde inner-client)
-                      (.configure (merge config/default inner-config) key?))]
-    (is (= (.build (.set (GenericRecordBuilder. schema) "field" (int 1)))
+        avro-serde (doto (GenericAvroSerde. inner-client)
+                     (.configure avro-config key?))
+        clojure-serde (doto (slava/clojure-serde inner-client)
+                        (.configure (merge config/default avro-config) key?))]
+    (is (= (.build (.set (^GenericRecordBuilder GenericRecordBuilder. schema) "field" ^Object (int 1)))
            (->> {"field" (int 1)}
-                (.serialize (.serializer slava-serde) topic)
-                (.deserialize (.deserializer generic-avro-serde) topic))))
+                (.serialize (.serializer clojure-serde) topic)
+                (.deserialize (.deserializer avro-serde) topic))))
     (is (= {"field" (int 1)}
-           (->> (.build (.set (GenericRecordBuilder. schema) "field" (int 1)))
-                (.serialize (.serializer generic-avro-serde) topic)
-                (.deserialize (.deserializer slava-serde) topic))))
+           (->> (.build (.set ^GenericRecordBuilder (GenericRecordBuilder. schema) "field" ^Object (int 1)))
+                (.serialize (.serializer avro-serde) topic)
+                (.deserialize (.deserializer clojure-serde) topic))))
     (is (= {"field" (int 1)}
            (->> {"field" (int 1)}
-                (.serialize (.serializer slava-serde) topic)
-                (.deserialize (.deserializer slava-serde) topic)))))
+                (.serialize (.serializer clojure-serde) topic)
+                (.deserialize (.deserializer clojure-serde) topic)))))
   (let [key? false
         inner-client (doto (MockSchemaRegistryClient.)
                        (.register "topic-name-value" (AvroSchema. schema) version-id schema-id))
-        generic-avro-serde (doto (GenericAvroSerde. inner-client)
-                             (.configure inner-config key?))
-        slava-serde (doto (slava/serde inner-client)
-                      (.configure (merge config/opinionated inner-config) key?))]
-    (is (= (.build (.set (GenericRecordBuilder. schema) "field" (int 1)))
+        avro-serde (doto (GenericAvroSerde. inner-client)
+                     (.configure avro-config key?))
+        clojure-serde (doto (slava/clojure-serde inner-client)
+                        (.configure (merge config/opinionated avro-config) key?))]
+    (is (= (.build (.set (GenericRecordBuilder. schema) "field" ^Object (int 1)))
            (->> {:field (int 1)}
-                (.serialize (.serializer slava-serde) topic)
-                (.deserialize (.deserializer generic-avro-serde) topic))))
+                (.serialize (.serializer clojure-serde) topic)
+                (.deserialize (.deserializer avro-serde) topic))))
     (is (= {:field (int 1)}
-           (->> (.build (.set (GenericRecordBuilder. schema) "field" (int 1)))
-                (.serialize (.serializer generic-avro-serde) topic)
-                (.deserialize (.deserializer slava-serde) topic))))
+           (->> (.build ^GenericRecordBuilder (.set (GenericRecordBuilder. schema) "field" ^Object (int 1)))
+                (.serialize (.serializer avro-serde) topic)
+                (.deserialize (.deserializer clojure-serde) topic))))
     (is (= {:field (int 1)}
            (->> {:field (int 1)}
-                (.serialize (.serializer slava-serde) topic)
-                (.deserialize (.deserializer slava-serde) topic))))))
+                (.serialize (.serializer clojure-serde) topic)
+                (.deserialize (.deserializer clojure-serde) topic))))))

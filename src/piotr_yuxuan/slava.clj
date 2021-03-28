@@ -107,10 +107,10 @@
    (doto (deserializer inner-client)
      (.configure config key?))))
 
-(defn ^Serde serde
+(defn ^Serde clojure-serde
   ([inner-client]
    (Serdes/serdeFrom (serializer inner-client)
                      (deserializer inner-client)))
   ([inner-client config key?]
-   (doto (serde inner-client)
+   (doto (clojure-serde inner-client)
      (.configure config key?))))
