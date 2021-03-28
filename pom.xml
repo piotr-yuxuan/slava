@@ -20,7 +20,7 @@
     <url>https://github.com/piotr-yuxuan/slava</url>
     <connection>scm:git:git://github.com/piotr-yuxuan/slava.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/piotr-yuxuan/slava.git</developerConnection>
-    <tag>89d4b1b29682c5c6845854421fd668a91da431ff</tag>
+    <tag>7570d97fb2a723f12b92f9eb0de72b9dc01f8ab7</tag>
   </scm>
   <build>
     <sourceDirectory>src</sourceDirectory>
@@ -83,7 +83,7 @@
     <dependency>
       <groupId>org.apache.avro</groupId>
       <artifactId>avro</artifactId>
-      <version>1.10.1</version>
+      <version>1.10.2</version>
     </dependency>
     <dependency>
       <groupId>byte-streams</groupId>
@@ -93,7 +93,7 @@
     <dependency>
       <groupId>io.confluent</groupId>
       <artifactId>kafka-avro-serializer</artifactId>
-      <version>6.1.0</version>
+      <version>6.1.1</version>
     </dependency>
     <dependency>
       <groupId>camel-snake-kebab</groupId>

@@ -1,8 +1,8 @@
 {:paths ["src" "resources" "classes"]
  :deps {org.clojure/clojure {:mvn/version "1.10.2"}
-        org.apache.avro/avro {:mvn/version "1.10.1"}
+        org.apache.avro/avro {:mvn/version "1.10.2"}
         byte-streams/byte-streams {:mvn/version "0.2.5-alpha2"}
-        io.confluent/kafka-avro-serializer {:mvn/version "6.1.0"}
+        io.confluent/kafka-avro-serializer {:mvn/version "6.1.1"}
         camel-snake-kebab/camel-snake-kebab {:mvn/version "0.4.2"}}
  :mvn/repos
  {"central" {:url "https://repo1.maven.org/maven2/"}
@@ -11,8 +11,8 @@
  :aliases
  {:test {:extra-paths ["test"]
          :extra-deps {com.bakdata.fluent-kafka-streams-tests/schema-registry-mock {:mvn/version "2.3.0"}
-                      org.apache.kafka/kafka-clients {:mvn/version "2.6.0"}
-                      org.apache.kafka/kafka-streams-test-utils {:mvn/version "5.3.1-ce"}}}
+                      org.apache.kafka/kafka-clients {:mvn/version "6.1.1-ce"}
+                      org.apache.kafka/kafka-streams-test-utils {:mvn/version "6.1.1-ce"}}}
   :run-x {:extra-paths ["dev"]
           :ns-default user
           :exec-fn run-x}
