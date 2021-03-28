@@ -15,37 +15,34 @@
 
 (defn subject-name
   "FIXME add cljdoc"
-  [{:keys [config]} ^String topic]
-  (let [{:keys [key? ^SubjectNameStrategy subject-name-strategy]} @config]
-    (.subjectName subject-name-strategy topic key? nil)))
+  [{:keys [key? ^SubjectNameStrategy subject-name-strategy]} ^String topic]
+  (.subjectName subject-name-strategy topic key? nil))
 
 (defn resolve-subject-name
   "FIXME add cljdoc"
-  [this ^String topic m]
+  [config ^String topic m]
   (if (contains? (meta m) :piotr-yuxuan.slava/subject-name)
     (get (meta m) :piotr-yuxuan.slava/subject-name)
-    (subject-name this topic)))
+    (subject-name config topic)))
 
 (defn schema-id!
   "FIXME add cljdoc"
-  [{:keys [^SchemaRegistryClient inner-client]} ^String subject-name]
+  [^SchemaRegistryClient inner-client ^String subject-name]
   (.getId (.getLatestSchemaMetadata inner-client subject-name)))
 
 (defn resolve-schema-id
   "FIXME add cljdoc"
-  [this ^Map m ^String subject-name]
+  [inner-client ^Map m ^String subject-name]
   (if (contains? (meta m) :piotr-yuxuan.slava/schema-id)
     (get (meta m) :piotr-yuxuan.slava/schema-id)
-    (schema-id! this subject-name)))
+    (schema-id! inner-client subject-name)))
 
 (defn resolve-schema
   "FIXME add cljdoc"
-  ^Schema [{:keys [inner-client] :as this} ^String topic ^Map m]
+  ^Schema [^SchemaRegistryClient inner-client ^Map m schema-id]
   (cond (contains? (meta m) :piotr-yuxuan.slava/writer-schema) (get (meta m) :piotr-yuxuan.slava/writer-schema)
         (contains? (meta m) :piotr-yuxuan.slava/reader-schema) (get (meta m) :piotr-yuxuan.slava/reader-schema)
-        :else (->> (resolve-schema-id this m (resolve-subject-name this topic m))
-                   ^AvroSchema (.getSchemaById inner-client)
-                   (.rawSchema))))
+        :else (.rawSchema ^AvroSchema (.getSchemaById inner-client schema-id))))
 
 (defn subject-name-strategy
   "FIXME add cljdoc"
@@ -64,6 +61,7 @@
     (reset! config (assoc value
                      :key? key?
                      :subject-name-strategy (subject-name-strategy inner-config key?)))
+    ;; Reflection warning: either a KafkaAvroSerializer or a KafkaAvroDeserializer.
     (.configure inner inner-config key?)))
 
 (defrecord ClojureSerializer [^Atom config
@@ -71,9 +69,11 @@
                               ^SchemaRegistryClient inner-client]
   Serializer
   (configure [this value key?] (configure! this value key?))
-  (serialize [this topic m]
-    (->> (resolve-schema this topic m)
-         (encode config m)
+  (serialize [_ topic m]
+    (->> (resolve-subject-name @config topic m)
+         (resolve-schema-id inner-client m)
+         (resolve-schema inner-client m)
+         (encode @config m)
          (.serialize inner topic)))
   (close [_] (.close inner)))
 
@@ -82,15 +82,15 @@
                                 ^SchemaRegistryClient inner-client]
   Deserializer
   (configure [this value key?] (configure! this value key?))
-  (deserialize [this topic data]
+  (deserialize [_ topic data]
     (let [^GenericContainer generic-container (.deserialize inner topic data)
           reader-schema (.getSchema generic-container)
           m (decode @config generic-container reader-schema)
-          subject-name (resolve-subject-name this topic m)]
+          subject-name (resolve-subject-name @config topic m)]
       (vary-meta m assoc
                  :piotr-yuxuan.slava/reader-schema reader-schema
                  :piotr-yuxuan.slava/subject-name subject-name
-                 :piotr-yuxuan.slava/schema-id (resolve-schema-id this m subject-name))))
+                 :piotr-yuxuan.slava/schema-id (resolve-schema-id inner-client m subject-name))))
   (close [_] (.close inner)))
 
 (defn ^ClojureSerializer serializer

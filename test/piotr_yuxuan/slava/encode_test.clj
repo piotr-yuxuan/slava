@@ -15,14 +15,14 @@
 (deftest avro-record-test
   (let [nested-record-schema (-> (SchemaBuilder/builder)
                                  ^SchemaBuilder$NamespacedBuilder (.record "NestedRecord")
-                                 ^SchemaBuilder$RecordBuilder (.namespace "piotr-yuxuan.slava.old_test")
+                                 ^SchemaBuilder$RecordBuilder (.namespace "piotr-yuxuan.slava.test")
                                  ^SchemaBuilder$FieldAssembler .fields
                                  (.name "field") .type .intType .noDefault
                                  (.name "mapField") (.type (-> (SchemaBuilder/builder) .map .values .intType)) .noDefault
                                  ^GenericData$Record .endRecord)
         record-schema (-> (SchemaBuilder/builder)
                           ^SchemaBuilder$NamespacedBuilder (.record "Record")
-                          ^SchemaBuilder$RecordBuilder (.namespace "piotr-yuxuan.slava.old_test")
+                          ^SchemaBuilder$RecordBuilder (.namespace "piotr-yuxuan.slava.test")
                           ^SchemaBuilder$FieldAssembler .fields
                           (.name "field") .type .intType .noDefault
                           (.name "nestedRecord") (.type nested-record-schema) .noDefault

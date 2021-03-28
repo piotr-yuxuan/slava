@@ -56,6 +56,8 @@
           map-key #(->> % (map (juxt (comp map-key key) val)) (into {}))
           :else nil)))
 
+(declare encoder-fn)
+
 (defn avro-union
   "FIXME add cljdoc"
   [{:keys [clojure-types] :as config} ^Schema$UnionSchema writer-schema]
@@ -75,7 +77,7 @@
             (some m [:piotr-yuxuan.slava/writer-schema
                      :piotr-yuxuan.slava/reader-schema]))
           ;; memoize?
-          :>> #((-encoder-fn config %) data)
+          :>> #((encoder-fn config %) data)
 
           (some->> (some :piotr-yuxuan.slava/type [(meta data) data])
                    name
