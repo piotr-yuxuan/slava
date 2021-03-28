@@ -17,7 +17,7 @@ Let's define a `GenericAvroSerde` and a Clojure `Serde` from this project:
 (def schema-registry-url "mock://")
 (def schema-registry-capacity 128)
 (def schema-registry (CachedSchemaRegistryClient. schema-registry-url schema-registry-capacity))
-(def avro-config {"schema.registry.url" "mock://"})
+(def avro-config {"schema.registry.url" schema-registry-url})
 
 (def ^Schema record-schema
   (-> (SchemaBuilder/builder)
@@ -32,7 +32,7 @@ Let's define a `GenericAvroSerde` and a Clojure `Serde` from this project:
     (.configure avro-config (boolean (not :key)))))
 
 (def clojure-serde
-  (doto (slava/clojure-serde (CachedSchemaRegistryClient. schema-registry-url schema-registry-capacity))
+  (doto (slava/clojure-serde schema-registry)
     (.configure (merge config/opinionated avro-config)
                 (boolean (not :key)))))
 ```
@@ -61,15 +61,18 @@ for further examples.
 FIXME add cljdoc
 
 This Clojure `Serde` relies on the inner serializer and deserializer
-of `GenericAvroSerde`. Because the way they are build, it is not
-possible to access their inner instance of `SchemaRegistryClient`
-without breaking Object privacy. As we prefer to be good citizens, we
-therefore have to declare our own instance and then pass it to the
-serdes.
+of `GenericAvroSerde`. Because the way they are built, it is not
+possible to access their inner instances of `SchemaRegistryClient`
+without breaking object-oriented privacy. As we prefer to be good
+citizens, we therefore have to declare our own instance and then pass
+it to the serdes.
+
+This library will not reach version 1.0.0 before more extensive tests
+have been written, and more detailed documentation has been added.
 
 # References
 
 FIXME add cljdoc
 
-For a more complete tool, see
+For a more complete Clojure API around Kafka, see
 [FundingCircle/jackdaw](https://github.com/FundingCircle/jackdaw).
