@@ -13,20 +13,6 @@ This project was created with:
 clojure -X:project/new :name piotr-yuxuan/slava
 ```
 
-Compile java classes from within a repl with:
-``` clojure
-(compile 'piotr-yuxuan.slava.deserializer)
-(compile 'piotr-yuxuan.slava.serializer)
-(compile 'piotr-yuxuan.slava.serde)
-```
-
-Alternatively, you can achieve the same from the CLI with:
-``` clojure
-clj -M -e "(compile 'piotr-yuxuan.slava.deserializer)"
-clj -M -e "(compile 'piotr-yuxuan.slava.serializer)"
-clj -M -e "(compile 'piotr-yuxuan.slava.serde)"
-```
-
 Run the project's tests:
 
 ``` zsh
