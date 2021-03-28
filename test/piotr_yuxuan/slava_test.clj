@@ -1,5 +1,5 @@
 (ns piotr-yuxuan.slava-test
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer [deftest testing is]]
             [piotr-yuxuan.slava :as slava]
             [piotr-yuxuan.slava.config :as config])
   (:import (io.confluent.kafka.serializers AbstractKafkaSchemaSerDeConfig KafkaAvroSerializerConfig)

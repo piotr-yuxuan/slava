@@ -2,7 +2,7 @@
   (:require [clojure.test :refer [deftest testing are is]]
             [piotr-yuxuan.slava.decode :as decode]
             [piotr-yuxuan.slava.config :as config])
-  (:import (org.apache.avro SchemaBuilder Schema LogicalTypes Schema$Type SchemaBuilder$NamespacedBuilder SchemaBuilder$RecordBuilder SchemaBuilder$FieldAssembler SchemaBuilder$MapDefault SchemaBuilder$UnionAccumulator SchemaBuilder$FixedBuilder)
+  (:import (org.apache.avro SchemaBuilder Schema LogicalTypes Schema$Type SchemaBuilder$NamespacedBuilder SchemaBuilder$RecordBuilder SchemaBuilder$FieldAssembler SchemaBuilder$UnionAccumulator)
            (org.apache.avro.generic GenericRecordBuilder GenericData$Record)))
 
 (deftest decoder-name-test
@@ -10,8 +10,8 @@
     :decoder/avro-record (decode/decoder-name (-> (SchemaBuilder/builder) (.record "Record") .fields .endRecord))
     :decoder/avro-array (decode/decoder-name (-> (SchemaBuilder/builder) .array .items .stringType))
     :decoder/avro-map (decode/decoder-name (-> (SchemaBuilder/builder) .map .values .stringType))
-    :decoder/avro-long (decode/decoder-name (-> (SchemaBuilder/builder) .longType))
-    :decoder/avro-long (decode/decoder-name (-> (LogicalTypes/timestampMillis) (.addToSchema (Schema/create Schema$Type/LONG))))))
+    :decoder/avro-long (decode/decoder-name (.longType (SchemaBuilder/builder)))
+    :decoder/avro-long (decode/decoder-name (.addToSchema (LogicalTypes/timestampMillis) (Schema/create Schema$Type/LONG)))))
 
 (deftest avro-record-test
   (let [nested-record-schema (-> (SchemaBuilder/builder)

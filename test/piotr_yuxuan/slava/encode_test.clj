@@ -10,7 +10,7 @@
     :encoder/avro-record (encode/encoder-name (-> (SchemaBuilder/builder) (.record "Record") .fields .endRecord))
     :encoder/avro-array (encode/encoder-name (-> (SchemaBuilder/builder) .array .items .stringType))
     :encoder/avro-map (encode/encoder-name (-> (SchemaBuilder/builder) .map .values .stringType))
-    :encoder/avro-long (encode/encoder-name (-> (SchemaBuilder/builder) .longType))))
+    :encoder/avro-long (encode/encoder-name (.longType (SchemaBuilder/builder)))))
 
 (deftest avro-record-test
   (let [nested-record-schema (-> (SchemaBuilder/builder)
@@ -115,7 +115,7 @@
                          (.set "field" 1)))]
     (testing "encoder is created for concrete container type"
       (is union-encoder))
-    (is (= nil (union-encoder nil)))
+    (is (nil? (union-encoder nil)))
     (is (= [] (union-encoder [])))
     (is (= [nil] (union-encoder [nil])))
     (is (= record (union-encoder {"field" 1 :piotr-yuxuan.slava/type :avro-record})))
@@ -129,7 +129,7 @@
                            {"field" {"field" 1}}])))
     (is (= [{"field" record}] (union-encoder [{"field" {"field" 1}}])))
     (is (= [record] (union-encoder [{"field" 1 :piotr-yuxuan.slava/type :avro-record}])))
-    (is (= {"field" record}) (union-encoder {"field" {"field" 1}})))
+    (is (= {"field" record} (union-encoder {"field" {"field" 1}}))))
   (testing "resolve tie when a union contains map, and then record"
     (let [record-schema (-> (SchemaBuilder/builder)
                             ^SchemaBuilder$NamespacedBuilder (.record "RecordSchema")
@@ -146,7 +146,7 @@
                            (.set "field" 1)))]
       (is (= record (union-encoder {"field" 1 :piotr-yuxuan.slava/type :avro-record})))
       (is (= record (union-encoder (with-meta {"field" 1} {:piotr-yuxuan.slava/type :avro-record}))))
-      (is (= {"field" 1}) (union-encoder {"field" 1}))))
+      (is (= record (union-encoder {"field" 1})))))
   (testing "resolve tie when a union contains record, and then map"
     (let [record-schema (-> (SchemaBuilder/builder)
                             ^SchemaBuilder$NamespacedBuilder (.record "RecordSchema")
@@ -162,4 +162,4 @@
           record (.build (doto (GenericRecordBuilder. record-schema)
                            (.set "field" 1)))]
       (is (= record (union-encoder {"field" 1})))
-      (is (= {"field" 1}) (union-encoder (with-meta {"field" 1} {:piotr-yuxuan.slava/type :avro-map}))))))
+      (is (= record (union-encoder (with-meta {"field" 1} {:piotr-yuxuan.slava/type :avro-map})))))))
