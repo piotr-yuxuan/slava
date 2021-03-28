@@ -4,7 +4,7 @@
   <groupId>piotr-yuxuan</groupId>
   <artifactId>slava</artifactId>
   <packaging>jar</packaging>
-  <version>0.17.0</version>
+  <version>0.18.0</version>
   <name>slava</name>
   <description>Kafka Avro Serde for Clojure</description>
   <url>https://github.com/piotr-yuxuan/slava</url>
