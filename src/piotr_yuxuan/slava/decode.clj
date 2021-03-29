@@ -25,12 +25,10 @@
         record-key (record-key-fn config reader-schema)
         field-decoders (map (fn [^Schema$Field field]
                               (let [field-name (.name field)
-                                    value-decoder (-decoder-fn (assoc config :field-name field-name)
-                                                               (.schema field))]
-                                (cond (and value-decoder record-key) (fn [m ^GenericData$Record data] (assoc! m (record-key field-name) (value-decoder (.get data field-name))))
-                                      value-decoder (fn [m ^GenericData$Record data] (assoc! m field-name (value-decoder (.get data field-name))))
-                                      record-key (fn [m ^GenericData$Record data] (assoc! m (record-key field-name) (.get data field-name)))
-                                      :else (fn [m ^GenericData$Record data] (assoc! m field-name (.get data field-name))))))
+                                    map-key-name (if record-key (record-key field-name) field-name)]
+                                (if-let [value-decoder (-decoder-fn (assoc config :field-name field-name) (.schema field))]
+                                  (fn [m ^GenericData$Record data] (assoc! m map-key-name (value-decoder (.get data field-name))))
+                                  (fn [m ^GenericData$Record data] (assoc! m map-key-name (.get data field-name))))))
                             (.getFields reader-schema))]
     (fn [data]
       (let [m (transient {})]

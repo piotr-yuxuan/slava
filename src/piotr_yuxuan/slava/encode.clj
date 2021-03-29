@@ -25,12 +25,11 @@
   (let [{:keys [record-key-fn]} config
         record-key (record-key-fn config writer-schema)
         field-encoders (map (fn [^Schema$Field field]
-                              (let [value-encoder (-encoder-fn config (.schema field))
-                                    field-name (.name field)]
-                                (cond (and value-encoder record-key) (fn [^GenericRecordBuilder record-builder ^Map m] (.set record-builder field-name (value-encoder (get m (record-key field-name)))))
-                                      value-encoder (fn [^GenericRecordBuilder record-builder ^Map m] (.set record-builder field-name (value-encoder (get m field-name))))
-                                      record-key (fn [^GenericRecordBuilder record-builder ^Map m] (.set record-builder field-name (get m (record-key field-name))))
-                                      :else (fn [^GenericRecordBuilder record-builder ^Map m] (.set record-builder field-name (get m field-name))))))
+                              (let [field-name (.name field)
+                                    map-key-name (if record-key (record-key field-name) field-name)]
+                                (if-let [value-encoder (-encoder-fn config (.schema field))]
+                                  (fn [^GenericRecordBuilder record-builder ^Map m] (.set record-builder field-name (value-encoder (get m map-key-name))))
+                                  (fn [^GenericRecordBuilder record-builder ^Map m] (.set record-builder field-name (get m map-key-name))))))
                             (.getFields writer-schema))]
     (fn [data]
       (let [record-builder (GenericRecordBuilder. writer-schema)]
