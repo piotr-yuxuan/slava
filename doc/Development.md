@@ -1,8 +1,16 @@
 # Development
 
-Invoking the function provided by this library from the command-line:
+## References
 
-FIXME add cljdoc
+- Getting started: <https://clojure.org/guides/getting_started>
+- `deps.edn` guide: <https://clojure.org/guides/deps_and_cli>
+- `deps.edn` reference: <https://clojure.org/reference/deps_and_cli>
+- Tools and how-to guides: <https://practicalli.github.io/clojure/>
+- Leiningen manual: <https://github.com/technomancy/leiningen>
+
+## Daily operations
+
+Invoking the function provided by this library from the command-line:
 
 Also, see
 [./test/piotr-yuxuan/slava_test.clj](./test/piotr_yuxuan/slava_test.clj).
@@ -71,7 +79,7 @@ and:
 mvn deploy -DaltDeploymentRepository=github::default::https://maven.pkg.github.com/piotr-yuxuan/slava
 ```
 
-# Notes on pom.xml
+## Notes on pom.xml
 
 If you don't plan to install/deploy the library, you can remove the
 `pom.xml` file but you will also need to remove `:sync-pom true` from

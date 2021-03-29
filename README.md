@@ -14,6 +14,14 @@ Kafka Avro Serde for Clojure.
 Let's define a `GenericAvroSerde` and a Clojure `Serde` from this project:
 
 ``` clojure
+(require '[piotr-yuxuan.slava.config :as config]
+         '[piotr-yuxuan.slava :as slava])
+
+(import '(io.confluent.kafka.schemaregistry.client CachedSchemaRegistryClient)
+        '(org.apache.avro Schema SchemaBuilder SchemaBuilder$NamespacedBuilder SchemaBuilder$RecordBuilder SchemaBuilder$FieldAssembler)
+        '(org.apache.avro.generic GenericData$Record)
+        '(io.confluent.kafka.streams.serdes.avro GenericAvroSerde))
+
 (def schema-registry-url "mock://")
 (def schema-registry-capacity 128)
 (def schema-registry (CachedSchemaRegistryClient. schema-registry-url schema-registry-capacity))
@@ -58,21 +66,87 @@ for further examples.
 
 # Description
 
-FIXME add cljdoc
-
-This Clojure `Serde` relies on the inner serializer and deserializer
-of `GenericAvroSerde`. Because the way they are built, it is not
-possible to access their inner instances of `SchemaRegistryClient`
-without breaking object-oriented privacy. As we prefer to be good
-citizens, we therefore have to declare our own instance and then pass
-it to the serdes.
-
 This library will not reach version 1.0.0 before more extensive tests
 have been written, and more detailed documentation has been added.
 
-# References
+The serialiser and deserialiser by this library provided wrap around
+their counterparts from `io.confluent.kafka.serializers`. Given a
+confluent config and a schema registry instance, a Clojure serde is
+built with:
 
-FIXME add cljdoc
+``` clojure
+(require '[piotr-yuxuan.slava.config :as config]
+         '[piotr-yuxuan.slava :as slava])
+
+(import '(io.confluent.kafka.schemaregistry.client CachedSchemaRegistryClient)
+        '(org.apache.kafka.common.serialization Serde))
+
+(def schema-registry-url "mock://")
+(def schema-registry-capacity 128)
+(def schema-registry (CachedSchemaRegistryClient. schema-registry-url schema-registry-capacity))
+(def avro-config {"schema.registry.url" schema-registry-url})
+
+(def ^Serde clojure-serde
+  (doto (slava/clojure-serde schema-registry)
+    (.configure (merge config/default avro-config)
+                (boolean (not :key)))))
+```
+
+In order to provide enough flexibility to adapt to most needs, you
+have complete access to the config. The value `config/default` will
+add no opinionated behaviours: an Avro enum will stay an instance of
+`GenericData$EnumSymbol`, an Avro string may be decoded as an instance
+of `org.apache.avro.util.Utf8` which implements CharSequence and is
+different from a `java.lang.String`; field keys will be decoded as
+strings, not keywords, and so on.
+
+An opinionated config uses different choices to provide a more
+Clojuresque look-and-feel. For example, let's look at this schema:
+
+``` clojure
+(def EnumField
+  (-> (SchemaBuilder/builder) (.enumeration "enum") (.symbols (into-array String ["A" "B" "C"]))))
+
+(def MyRecord
+  (-> (SchemaBuilder/builder)
+      ^SchemaBuilder$NamespacedBuilder (.record "RecordSchema")
+      ^SchemaBuilder$FieldAssembler .fields
+      (.name "intField") .type .intType .noDefault
+      (.name "booleanField") .type .booleanType .noDefault
+      (.name "enumField") (.type EnumField) .noDefault
+      ^GenericData$Record .endRecord))
+```
+
+If we define a `Serde` with `config/opinionated`:
+
+``` clojure
+(def ^Serde clojure-serde
+  (doto (slava/clojure-serde schema-registry)
+    (.configure (merge config/opinionated avro-config)
+                (boolean (not :key)))))
+```
+
+then the deserialisation / serialisation logic will be equivalent to:
+
+``` clojure
+(defn ^Map my-record-decoder
+  [^GenericData$Record record]
+  {:intField (.get record "intField")
+   :booleanField (not (.get record "booleanField"))
+   :enumField (csk/->kebab-case-keyword (.toString (.get record "enumField")))})
+
+(defn ^GenericData$Record my-record-encoder
+  [^Map m]
+  (.build (doto (GenericRecordBuilder. MyRecord)
+            (.set "intField" (get m :intField))
+            (.set "booleanField" (get m :booleanField))
+            (.set "enumField" (GenericData$EnumSymbol. EnumField (csk/->SCREAMING_SNAKE_CASE_STRING (get m :enumField)))))))
+```
+
+These coders will be compiled only once at the first time, and reused
+for any subsequent invocation.
+
+# References
 
 For a more complete Clojure API around Kafka, see
 [FundingCircle/jackdaw](https://github.com/FundingCircle/jackdaw).
