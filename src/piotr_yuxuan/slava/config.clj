@@ -99,8 +99,17 @@
   (assoc default
     :record-key-fn (constantly csk/->kebab-case-keyword)
 
-    :decoder/avro-enum (constantly (comp csk/->kebab-case-keyword str))
-    :encoder/avro-enum (fn [_ ^Schema$EnumSchema writer-schema] #(GenericData$EnumSymbol. writer-schema (csk/->SCREAMING_SNAKE_CASE_STRING %)))
+    ;; Explicit example of a decoder
+    :decoder/avro-enum (fn enum-decoder-compiler [_config ^Schema$EnumSchema _reader-schema]
+                         (fn enum-decoder [^GenericData$EnumSymbol data]
+                           (csk/->kebab-case-keyword (.toString data))))
+
+    ;; Explicit example of an encoder
+    :encoder/avro-enum (fn enum-encoder-compiler [_config ^Schema$EnumSchema writer-schema]
+                         (fn enum-encoder [data]
+                           (GenericData$EnumSymbol.
+                             writer-schema
+                             (csk/->SCREAMING_SNAKE_CASE_STRING data))))
 
     :decoder/map-key-fn (fn [{:keys [field-name]} _] (partial keyword field-name))
     :encoder/map-key-fn (constantly name)
