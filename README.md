@@ -132,7 +132,7 @@ then the deserialisation / serialisation logic will be equivalent to:
 (defn ^Map my-record-decoder
   [^GenericData$Record record]
   {:intField (.get record "intField")
-   :booleanField (not (.get record "booleanField"))
+   :booleanField (.get record "booleanField")
    :enumField (csk/->kebab-case-keyword (.toString (.get record "enumField")))})
 
 (defn ^GenericData$Record my-record-encoder
