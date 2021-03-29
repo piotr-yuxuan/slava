@@ -131,16 +131,16 @@ then the deserialisation / serialisation logic will be equivalent to:
 ``` clojure
 (defn ^Map my-record-decoder
   [^GenericData$Record record]
-  {:intField (.get record "intField")
-   :booleanField (.get record "booleanField")
-   :enumField (csk/->kebab-case-keyword (.toString (.get record "enumField")))})
+  {:int-field (.get record "intField")
+   :boolean-field (.get record "booleanField")
+   :enum-field (csk/->kebab-case-keyword (.toString (.get record "enumField")))})
 
 (defn ^GenericData$Record my-record-encoder
   [^Map m]
   (.build (doto (GenericRecordBuilder. MyRecord)
-            (.set "intField" (get m :intField))
-            (.set "booleanField" (get m :booleanField))
-            (.set "enumField" (GenericData$EnumSymbol. EnumField (csk/->SCREAMING_SNAKE_CASE_STRING (get m :enumField)))))))
+            (.set "intField" (get m :int-field))
+            (.set "booleanField" (get m :boolean-field))
+            (.set "enumField" (GenericData$EnumSymbol. EnumField (csk/->SCREAMING_SNAKE_CASE_STRING (get m :enum-field)))))))
 ```
 
 These coders will be compiled only once at the first time, and reused
