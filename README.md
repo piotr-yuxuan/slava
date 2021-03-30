@@ -146,6 +146,10 @@ then the deserialisation / serialisation logic will be equivalent to:
 These coders will be compiled only once at the first time, and reused
 for any subsequent invocation.
 
+# Known bugs
+
+See [GitHub issues](https://github.com/piotr-yuxuan/slava/issues).
+
 # References
 
 For a more complete Clojure API around Kafka, see

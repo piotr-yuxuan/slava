@@ -27,6 +27,7 @@
 
 (defn schema-id!
   "FIXME add cljdoc"
+  ;; FIXME on every serialization. Should be cached.
   [^SchemaRegistryClient inner-client ^String subject-name]
   (.getId (.getLatestSchemaMetadata inner-client subject-name)))
 
