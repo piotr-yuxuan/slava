@@ -13,6 +13,6 @@ jobs:
     - run: lein licenses > './doc/licenses'
     - uses: EndBug/add-and-commit@v7.1.2
       with:
-        add: '.'
+        add: 'project.clj doc'
         message: 'Bump dependency versions'
         signoff: true
