@@ -1,0 +1,16 @@
+name: Bump dependency versions
+on:
+  schedule:
+    - cron: "0 0 1 * *"
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - run: lein deps
+    - run: lein bump-dependency-versions
+    - uses: EndBug/add-and-commit@v7.1.2
+      with:
+        add: 'project.clj'
+        message: 'Bump dependency versions'
+        signoff: true
