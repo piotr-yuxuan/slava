@@ -1,11 +1,11 @@
 (defproject piotr-yuxuan/slava (-> "./resources/slava.version" slurp .trim)
-  :description "A Clojure map which implements java.io.Closeable"
-  :url "https://github.com/piotr-yuxuan/closeable-map"
+  :description " Kafka Avro Serde for Clojure "
+  :url "https://github.com/piotr-yuxuan/slava"
   :license {:name "European Union Public License 1.2 or later"
             :url "https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12"
             :distribution :repo}
   :scm {:name "git"
-        :url "https://github.com/piotr-yuxuan/closeable-map"}
+        :url "https://github.com/piotr-yuxuan/slava"}
   :pom-addition [:developers [:developer
                               [:name "胡雨軒 Петр"]
                               [:url "https://github.com/piotr-yuxuan"]]]
