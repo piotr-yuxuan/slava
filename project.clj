@@ -9,7 +9,7 @@
   :pom-addition [:developers [:developer
                               [:name "胡雨軒 Петр"]
                               [:url "https://github.com/piotr-yuxuan"]]]
-  :dependencies [[org.clojure/clojure "1.10.2"]
+  :dependencies [[org.clojure/clojure "1.10.3"]
                  [org.apache.avro/avro "1.10.2"]
                  [byte-streams/byte-streams "0.2.5-alpha2"]
                  [io.confluent/kafka-avro-serializer "6.1.1"]
@@ -17,7 +17,7 @@
   :global-vars {*warn-on-reflection* true}
   :aot :all
   :profiles {:dev {:jvm-opts ["-Dclojure.compiler.disable-locals-clearing=true"]}
-             :test {:dependencies [[com.bakdata.fluent-kafka-streams-tests/schema-registry-mock "2.3.0"]
+             :test {:dependencies [[com.bakdata.fluent-kafka-streams-tests/schema-registry-mock "2.3.1"]
                                    [org.apache.kafka/kafka-clients "6.1.1-ce"]
                                    [org.apache.kafka/kafka-streams-test-utils "6.1.1-ce"]]}
              :jar {:jvm-opts ["-Dclojure.compiler.disable-locals-clearing=false"
