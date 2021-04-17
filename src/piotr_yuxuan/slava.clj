@@ -3,16 +3,17 @@
   (:require [piotr-yuxuan.slava.config :as config]
             [piotr-yuxuan.slava.decode :refer [decode]]
             [piotr-yuxuan.slava.encode :refer [encode]])
-  (:import (clojure.lang Atom)
+  (:import (clojure.lang Atom Obj)
            (io.confluent.kafka.schemaregistry.avro AvroSchema)
-           (io.confluent.kafka.schemaregistry.client SchemaRegistryClient CachedSchemaRegistryClient)
+           (io.confluent.kafka.schemaregistry.client SchemaRegistryClient)
            (io.confluent.kafka.serializers KafkaAvroSerializer KafkaAvroSerializerConfig KafkaAvroDeserializer)
            (io.confluent.kafka.serializers.subject.strategy SubjectNameStrategy)
            (java.nio ByteBuffer)
            (java.util Map)
            (org.apache.avro Schema)
            (org.apache.avro.generic GenericContainer)
-           (org.apache.kafka.common.serialization Serializer Deserializer Serdes Serde)))
+           (org.apache.kafka.common.serialization Serializer Deserializer Serdes Serde)
+           (java.util.concurrent ConcurrentHashMap)))
 
 (defn ^String subject-name
   "FIXME add cljdoc"
@@ -28,19 +29,47 @@
 
 (defn cached-schema!
   "FIXME add cljdoc"
-  [^CachedSchemaRegistryClient inner-client schema-id]
+  [^SchemaRegistryClient inner-client schema-id]
   (.rawSchema ^AvroSchema (.getSchemaById inner-client schema-id)))
+
+(defn default-subject-name->id
+  [subject-name->id inner-client subject-name]
+  (if (contains? @subject-name->id subject-name)
+    (get @subject-name->id subject-name)
+    (let [retrieved-id (.getId (.getLatestSchemaMetadata inner-client subject-name))]
+      (swap! subject-name->id assoc subject-name retrieved-id)
+      retrieved-id)))
+
+(defn subject-name->id
+  [config inner-client subject-name]
+  (let [subject-name->id (get-in config [:subject-name->id :ref])
+        through (get-in config [:subject-name->id :through] default-subject-name->id)]
+    (through subject-name->id subject-name)
+    (get @subject-name->id subject-name
+         (let [retrieved-id (.getId (.getLatestSchemaMetadata inner-client subject-name))]
+           (swap! subject-name->id assoc subject-name retrieved-id)
+           retrieved-id))))
+
+(defn schema-id!
+  "FIXME add cljdoc"
+  [config topic ^Map m]
+  (let [subject-name->id (get-in config [:subject-name->id :through] subject-name->id)]
+    (subject-name->id (resolve-subject-name config topic m))))
+
+(defn resolve-schema-id
+  "FIXME add cljdoc"
+  [config topic ^Map m]
+  (if (contains? (meta m) ::schema-id)
+    (get (meta m) ::schema-id)
+    (schema-id! config topic m)))
 
 (defn ^Schema resolve-schema
   "FIXME add cljdoc"
-  [config ^CachedSchemaRegistryClient inner-client topic ^Map m]
+  [config ^SchemaRegistryClient inner-client topic ^Map m]
   (cond (contains? (meta m) ::schema) (get (meta m) ::schema) ; User-defined, takes precedence.
         (contains? (meta m) ::writer-schema) (get (meta m) ::writer-schema)
         (contains? (meta m) ::reader-schema) (get (meta m) ::reader-schema)
-        (contains? (meta m) ::schema-id) (cached-schema! inner-client (get (meta m) ::schema-id))
-        :else (->> (resolve-subject-name config topic m)
-                   ((get-in config [:subject-name->id :through]))
-                   (cached-schema! inner-client))))
+        :else (cached-schema! inner-client (resolve-schema-id config topic m))))
 
 (defn subject-name->id
   [inner-client value]
