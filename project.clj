@@ -9,10 +9,10 @@
   :pom-addition [:developers [:developer
                               [:name "胡雨軒 Петр"]
                               [:url "https://github.com/piotr-yuxuan"]]]
-  :dependencies [[org.apache.avro/avro "1.10.2"]
-                 [byte-streams/byte-streams "0.2.5-alpha2"]
+  :dependencies [[byte-streams/byte-streams "0.2.5-alpha2"]
+                 [camel-snake-kebab/camel-snake-kebab "0.4.2"]
                  [io.confluent/kafka-avro-serializer "6.1.1"]
-                 [camel-snake-kebab/camel-snake-kebab "0.4.2"]]
+                 [org.apache.avro/avro "1.10.2"]]
   :global-vars {*warn-on-reflection* true}
   :aot :all
   :profiles {:dev {:jvm-opts ["-Dclojure.compiler.disable-locals-clearing=true"]}
