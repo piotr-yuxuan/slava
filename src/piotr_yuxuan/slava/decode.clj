@@ -28,7 +28,7 @@
 
 (def-map-type AvroRecord [generic-record mta]
   (get [_ k default-value] (avro-record-get generic-record mta k default-value))
-  (assoc [_ k v] (AvroRecord. (.put ^GenericData$Record generic-record k v) mta))
+  (assoc [_ k v] (AvroRecord. (.put ^GenericData$Record generic-record ^String k v) mta))
   (dissoc [_ k] (throw (ex-info "NotImplementedException" {:error "It is not possible to dissoc the field of an GenericData$Record. Try to set the value at `nil`?"})))
   (keys [_] (-> mta ::field-decoders keys))
   (meta [_] mta)
