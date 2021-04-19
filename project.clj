@@ -12,7 +12,8 @@
   :dependencies [[byte-streams/byte-streams "0.2.5-alpha2"]
                  [camel-snake-kebab/camel-snake-kebab "0.4.2"]
                  [io.confluent/kafka-avro-serializer "6.1.1"]
-                 [org.apache.avro/avro "1.10.2"]]
+                 [org.apache.avro/avro "1.10.2"]
+                 [potemkin/potemkin "0.4.5"]]
   :global-vars {*warn-on-reflection* true}
   :aot :all
   :profiles {:dev {:jvm-opts ["-Dclojure.compiler.disable-locals-clearing=true"]}
