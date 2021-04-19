@@ -114,8 +114,7 @@
        :doc "FIXME add cljdoc"}
   ;; The assumption is that we won't see a lot of schemas here, so we can build a encoder only once.
   decoder-fn
-  ;(memoize)
-  -decoder-fn)
+  (memoize -decoder-fn))
 
 (defn decode
   "FIXME add cljdoc"
