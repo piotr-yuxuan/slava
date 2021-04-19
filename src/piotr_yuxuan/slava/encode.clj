@@ -1,8 +1,10 @@
 (ns piotr-yuxuan.slava.encode
   "FIXME add cljdoc"
   (:require [camel-snake-kebab.core :as csk]
-            [clojure.string :as str])
-  (:import (org.apache.avro Schema Schema$MapSchema Schema$UnionSchema Schema$ArraySchema Schema$Field Schema$RecordSchema)
+            [clojure.string :as str]
+            [piotr_yuxuan.slava.decode])
+  (:import (piotr_yuxuan.slava.decode AvroRecord)
+           (org.apache.avro Schema Schema$MapSchema Schema$UnionSchema Schema$ArraySchema Schema$Field Schema$RecordSchema)
            (java.util Map)
            (org.apache.avro.generic GenericRecordBuilder)))
 
@@ -32,10 +34,12 @@
                                   (fn [^GenericRecordBuilder record-builder ^Map m] (.set record-builder field-name (get m map-key-name))))))
                             (.getFields writer-schema))]
     (fn [data]
-      (let [record-builder (GenericRecordBuilder. writer-schema)]
-        (doseq [encoder! field-encoders]
-          (encoder! record-builder data))
-        (.build record-builder)))))
+      (if (instance? AvroRecord data)
+        (-> data meta :piotr-yuxuan.slava/generic-record)
+        (let [record-builder (GenericRecordBuilder. writer-schema)]
+          (doseq [encoder! field-encoders]
+            (encoder! record-builder data))
+          (.build record-builder))))))
 
 (defn avro-array
   "FIXME add cljdoc"

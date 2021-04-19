@@ -2,7 +2,8 @@
   (:require [clojure.test :refer [deftest testing are is]]
             [piotr-yuxuan.slava.encode :as encode]
             [piotr-yuxuan.slava.config :as config])
-  (:import (org.apache.avro SchemaBuilder SchemaBuilder$NamespacedBuilder SchemaBuilder$RecordBuilder SchemaBuilder$FieldAssembler SchemaBuilder$UnionAccumulator)
+  (:import (piotr_yuxuan.slava.decode AvroRecord)
+           (org.apache.avro SchemaBuilder SchemaBuilder$NamespacedBuilder SchemaBuilder$RecordBuilder SchemaBuilder$FieldAssembler SchemaBuilder$UnionAccumulator)
            (org.apache.avro.generic GenericData$Record GenericRecordBuilder)))
 
 (deftest encoder-name-test
@@ -27,16 +28,18 @@
                           (.name "field") .type .intType .noDefault
                           (.name "nestedRecord") (.type nested-record-schema) .noDefault
                           ^GenericData$Record .endRecord)
-        record-encoder (encode/avro-record config/default record-schema)]
+        record-encoder (encode/avro-record config/default record-schema)
+        generic-record (doto (GenericRecordBuilder. record-schema)
+                         (.set "field" (int 1))
+                         (.set "nestedRecord" (.build (doto (GenericRecordBuilder. nested-record-schema)
+                                                        (.set "field" (int 1))
+                                                        (.set "mapField" {"field" (int 1)})))))]
     (testing "record is properly encoded, as are field values"
       (is (= (record-encoder {"field" (int 1)
                               "nestedRecord" {"field" (int 1)
                                               "mapField" {"field" (int 1)}}})
-             (.build (doto (GenericRecordBuilder. record-schema)
-                       (.set "field" (int 1))
-                       (.set "nestedRecord" (.build (doto (GenericRecordBuilder. nested-record-schema)
-                                                      (.set "field" (int 1))
-                                                      (.set "mapField" {"field" (int 1)})))))))))))
+             (.build generic-record)))
+      (is (= generic-record (record-encoder (AvroRecord. generic-record {})))))))
 
 (deftest avro-array-test
   (let [map-schema (-> (SchemaBuilder/builder) .map .values .longType)

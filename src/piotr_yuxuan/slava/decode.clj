@@ -31,7 +31,7 @@
   (assoc [_ k v] (AvroRecord. (.put ^GenericData$Record generic-record ^String k v) mta))
   (dissoc [_ k] (throw (ex-info "NotImplementedException" {:error "It is not possible to dissoc the field of an GenericData$Record. Try to set the value at `nil`?"})))
   (keys [_] (-> mta ::field-decoders keys))
-  (meta [_] mta)
+  (meta [_] (assoc mta :piotr-yuxuan.slava/generic-record generic-record))
   (with-meta [_ new-mta] (AvroRecord. generic-record (merge mta new-mta))))
 
 (defn field-decoders
