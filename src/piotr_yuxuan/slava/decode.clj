@@ -1,7 +1,8 @@
 (ns piotr-yuxuan.slava.decode
   "FIXME add cljdoc"
   (:require [camel-snake-kebab.core :as csk]
-            [clojure.string :as str])
+            [clojure.string :as str]
+            [potemkin :refer [def-map-type]])
   (:import (org.apache.avro Schema$Field Schema Schema$MapSchema Schema$RecordSchema Schema$ArraySchema Schema$UnionSchema)
            (org.apache.avro.generic GenericData$Record GenericData$Array)))
 
@@ -18,27 +19,43 @@
 
 (declare -decoder-fn)
 
-(defn avro-record
+(defn avro-record-get
+  [data {::keys [field-decoders]} k default-value]
+  (when (instance? GenericData$Record data)
+    (if-let [field-getter (get field-decoders k)]
+      (field-getter data)
+      default-value)))
+
+(def-map-type AvroRecord [generic-record mta]
+  (get [_ k default-value] (avro-record-get generic-record mta k default-value))
+  (assoc [_ k v] (AvroRecord. (.put ^GenericData$Record generic-record k v) mta))
+  (dissoc [_ k] (throw (ex-info "NotImplementedException" {:error "It is not possible to dissoc the field of an GenericData$Record. Try to set the value at `nil`?"})))
+  (keys [_] (-> mta ::field-decoders keys))
+  (meta [_] mta)
+  (with-meta [_ new-mta] (AvroRecord. generic-record (merge mta new-mta))))
+
+(defn field-decoders
+  "Return a map. The keys are the field names in the Clojure
+  convention, the value are function that accept one argument `data`
+  and return the field value, converted if need be."
+  [{:keys [record-key-fn] :or {record-key-fn identity} :as config} ^Schema$RecordSchema schema]
+  (reduce (fn [acc ^Schema$Field field]
+            (let [record-key (record-key-fn config schema)
+                  field-name (.name field)
+                  field-getter (if-let [value-decoder (-decoder-fn (assoc config :field-name field-name) (.schema field))]
+                                 (fn [^GenericData$Record data] (value-decoder (.get data field-name)))
+                                 (fn [^GenericData$Record data] (.get data field-name)))]
+              (assoc acc (record-key field-name) field-getter)))
+          {}
+          (.getFields schema)))
+
+(defn ^AvroRecord avro-record
   "FIXME add cljdoc"
-  [config ^Schema$RecordSchema reader-schema]
-  (let [{:keys [record-key-fn]} config
-        record-key (record-key-fn config reader-schema)
-        field-decoders (map (fn [^Schema$Field field]
-                              (let [field-name (.name field)
-                                    map-key-name (if record-key (record-key field-name) field-name)]
-                                (if-let [value-decoder (-decoder-fn (assoc config :field-name field-name) (.schema field))]
-                                  (fn [m ^GenericData$Record data] (assoc! m map-key-name (value-decoder (.get data field-name))))
-                                  (fn [m ^GenericData$Record data] (assoc! m map-key-name (.get data field-name))))))
-                            (.getFields reader-schema))]
-    (fn [data]
-      (let [m (transient {})]
-        (doseq [decoder! field-decoders]
-          (decoder! m data))
-        (vary-meta
-          (persistent! m)
-          assoc
-          :piotr-yuxuan.slava/type :avro-record
-          :piotr-yuxuan.slava/reader-schema reader-schema)))))
+  [{:keys [record-key-fn] :or {record-key-fn identity} :as config} ^Schema$RecordSchema schema]
+  (fn [^GenericData$Record generic-record]
+    (->> (field-decoders config schema)
+         (assoc (meta generic-record) ::field-decoders)
+         (AvroRecord. generic-record))))
 
 (defn avro-array
   "FIXME add cljdoc"
@@ -97,7 +114,8 @@
        :doc "FIXME add cljdoc"}
   ;; The assumption is that we won't see a lot of schemas here, so we can build a encoder only once.
   decoder-fn
-  (memoize -decoder-fn))
+  ;(memoize)
+  -decoder-fn)
 
 (defn decode
   "FIXME add cljdoc"

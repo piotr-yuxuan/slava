@@ -88,7 +88,7 @@
 (def default
   "FIXME add cljdoc"
   (merge
-    {:record-key-fn (constantly nil)
+    {:record-key-fn (constantly str)
      :clojure-types clojure-types
      :generic-concrete-types generic-concrete-types}
     avro-decoders
