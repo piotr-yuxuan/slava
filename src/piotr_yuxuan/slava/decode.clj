@@ -4,7 +4,8 @@
             [clojure.string :as str]
             [potemkin :refer [def-map-type]])
   (:import (org.apache.avro Schema$Field Schema Schema$MapSchema Schema$RecordSchema Schema$ArraySchema Schema$UnionSchema)
-           (org.apache.avro.generic GenericData$Record GenericData$Array)))
+           (org.apache.avro.generic GenericData$Record GenericData$Array)
+           (piotr_yuxuan.slava.slava_record SlavaGenericRecord)))
 
 (defn decoder-name
   "FIXME add cljdoc"
@@ -18,21 +19,6 @@
        (keyword "decoder")))
 
 (declare -decoder-fn)
-
-(defn avro-record-get
-  [data {::keys [field-decoders]} k default-value]
-  (when (instance? GenericData$Record data)
-    (if-let [field-getter (get field-decoders k)]
-      (field-getter data)
-      default-value)))
-
-(def-map-type AvroRecord [generic-record mta]
-  (get [_ k default-value] (avro-record-get generic-record mta k default-value))
-  (assoc [_ k v] (AvroRecord. (.put ^GenericData$Record generic-record ^String k v) mta))
-  (dissoc [_ k] (throw (ex-info "NotImplementedException" {:error "It is not possible to dissoc the field of an GenericData$Record. Try to set the value at `nil`?"})))
-  (keys [_] (-> mta ::field-decoders keys))
-  (meta [_] (assoc mta :piotr-yuxuan.slava/generic-record generic-record))
-  (with-meta [_ new-mta] (AvroRecord. generic-record (merge mta new-mta))))
 
 (defn field-decoders
   "Return a map. The keys are the field names in the Clojure
@@ -49,13 +35,13 @@
           {}
           (.getFields schema)))
 
-(defn ^AvroRecord avro-record
+(defn ^SlavaGenericRecord avro-record
   "FIXME add cljdoc"
   [{:keys [record-key-fn] :or {record-key-fn identity} :as config} ^Schema$RecordSchema schema]
   (fn [^GenericData$Record generic-record]
     (->> (field-decoders config schema)
-         (assoc (meta generic-record) ::field-decoders)
-         (AvroRecord. generic-record))))
+         (assoc (meta generic-record) :piotr-yuxuan.slava/field-decoders)
+         (SlavaGenericRecord. generic-record))))
 
 (defn avro-array
   "FIXME add cljdoc"

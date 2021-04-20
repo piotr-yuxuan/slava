@@ -2,7 +2,7 @@
   (:require [clojure.test :refer [deftest testing are is]]
             [piotr-yuxuan.slava.decode :as decode]
             [piotr-yuxuan.slava.config :as config])
-  (:import (piotr_yuxuan.slava.decode AvroRecord)
+  (:import (piotr_yuxuan.slava.slava_record SlavaGenericRecord)
            (org.apache.avro SchemaBuilder Schema LogicalTypes Schema$Type SchemaBuilder$NamespacedBuilder SchemaBuilder$RecordBuilder SchemaBuilder$FieldAssembler SchemaBuilder$UnionAccumulator)
            (org.apache.avro.generic GenericRecordBuilder GenericData$Record)))
 
@@ -36,7 +36,7 @@
                                                               (.set "field" (int 1))
                                                               (.set "mapField" {"field" 1}))))))]
     (testing "record is properly decoded, as are field values"
-      (is (instance? AvroRecord (record-decoder record-value)))
+      (is (instance? SlavaGenericRecord (record-decoder record-value)))
       (is (= (record-decoder record-value)
              {"field" 1
               "nestedRecord" {"field" 1
@@ -74,7 +74,7 @@
           record (.build (doto (GenericRecordBuilder. record-schema)
                            (.set "prefix" {"map-entry" 1})))]
       (is (= {:prefix #:prefix{:map-entry 1}} (union-decoder record)))
-      (is (instance? AvroRecord (union-decoder record))))))
+      (is (instance? SlavaGenericRecord (union-decoder record))))))
 
 (deftest avro-union-test
   (let [;; All concrete, non-container types

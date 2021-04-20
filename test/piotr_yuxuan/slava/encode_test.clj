@@ -2,7 +2,7 @@
   (:require [clojure.test :refer [deftest testing are is]]
             [piotr-yuxuan.slava.encode :as encode]
             [piotr-yuxuan.slava.config :as config])
-  (:import (piotr_yuxuan.slava.decode AvroRecord)
+  (:import (piotr_yuxuan.slava.slava_record SlavaGenericRecord)
            (org.apache.avro SchemaBuilder SchemaBuilder$NamespacedBuilder SchemaBuilder$RecordBuilder SchemaBuilder$FieldAssembler SchemaBuilder$UnionAccumulator)
            (org.apache.avro.generic GenericData$Record GenericRecordBuilder)))
 
@@ -39,7 +39,7 @@
                               "nestedRecord" {"field" (int 1)
                                               "mapField" {"field" (int 1)}}})
              (.build generic-record)))
-      (is (= generic-record (record-encoder (AvroRecord. generic-record {})))))))
+      (is (= generic-record (record-encoder (SlavaGenericRecord. generic-record {:piotr-yuxuan.slava/generic-record generic-record})))))))
 
 (deftest avro-array-test
   (let [map-schema (-> (SchemaBuilder/builder) .map .values .longType)

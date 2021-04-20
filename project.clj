@@ -11,6 +11,7 @@
                               [:url "https://github.com/piotr-yuxuan"]]]
   :dependencies [[byte-streams/byte-streams "0.2.5-alpha2"]
                  [camel-snake-kebab/camel-snake-kebab "0.4.2"]
+                 [com.github.piotr-yuxuan/slava-record "0.0.1"]
                  [io.confluent/kafka-avro-serializer "6.1.1"]
                  [org.apache.avro/avro "1.10.2"]
                  [potemkin/potemkin "0.4.5"]]

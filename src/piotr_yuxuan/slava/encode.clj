@@ -3,7 +3,7 @@
   (:require [camel-snake-kebab.core :as csk]
             [clojure.string :as str]
             [piotr_yuxuan.slava.decode])
-  (:import (piotr_yuxuan.slava.decode AvroRecord)
+  (:import (piotr_yuxuan.slava.slava_record SlavaRecord)
            (org.apache.avro Schema Schema$MapSchema Schema$UnionSchema Schema$ArraySchema Schema$Field Schema$RecordSchema)
            (java.util Map)
            (org.apache.avro.generic GenericRecordBuilder)))
@@ -34,8 +34,8 @@
                                   (fn [^GenericRecordBuilder record-builder ^Map m] (.set record-builder field-name (get m map-key-name))))))
                             (.getFields writer-schema))]
     (fn [data]
-      (if (instance? AvroRecord data)
-        (-> data meta :piotr-yuxuan.slava/generic-record)
+      (if (instance? SlavaRecord data)
+        (.unwrap data)
         (let [record-builder (GenericRecordBuilder. writer-schema)]
           (doseq [encoder! field-encoders]
             (encoder! record-builder data))
