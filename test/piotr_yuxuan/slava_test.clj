@@ -62,24 +62,6 @@
       (.name "field") .type .intType .noDefault
       ^GenericData$Record .endRecord))
 
-(deftest schema-id!-test
-  (let [previous-version-id 2
-        previous-schema-id 2
-        version-id 3
-        schema-id 3
-        inner-client (doto (MockSchemaRegistryClient.)
-                       (.register "subject-name"
-                                  (AvroSchema. previous-schema)
-                                  previous-version-id
-                                  previous-schema-id)
-                       (.register "subject-name"
-                                  (AvroSchema. schema)
-                                  version-id
-                                  schema-id))]
-    (testing "get latest schema version"
-      (is (= (slava/schema-id! inner-client "subject-name")
-             schema-id)))))
-
 (def ^Integer version-id
   (rand-int 100))
 
@@ -131,10 +113,11 @@
 
 (deftest resolve-schema-test
   (is (= schema (slava/resolve-schema
+                  config/default
                   (doto (MockSchemaRegistryClient.)
                     (.register "subject-name" (AvroSchema. schema) version-id schema-id))
-                  {}
-                  schema-id)))
+                  topic
+                  {})))
   (is (= writer-schema
          (slava/resolve-schema (MockSchemaRegistryClient.)
                                (with-meta {} {:piotr-yuxuan.slava/writer-schema writer-schema

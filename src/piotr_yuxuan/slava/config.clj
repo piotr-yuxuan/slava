@@ -90,7 +90,8 @@
   (merge
     {:record-key-fn (constantly str)
      :clojure-types clojure-types
-     :generic-concrete-types generic-concrete-types}
+     :generic-concrete-types generic-concrete-types
+     :subject-name->id :default}
     avro-decoders
     avro-encoders))
 
