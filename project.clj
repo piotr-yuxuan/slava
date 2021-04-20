@@ -1,5 +1,5 @@
 (defproject piotr-yuxuan/slava (-> "./resources/slava.version" slurp .trim)
-  :description " Kafka Avro Serde for Clojure "
+  :description "Kafka Avro Serde for Clojure"
   :url "https://github.com/piotr-yuxuan/slava"
   :license {:name "European Union Public License 1.2 or later"
             :url "https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12"
