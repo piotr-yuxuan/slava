@@ -1,8 +1,8 @@
 (ns piotr-yuxuan.slava
   "FIXME add cljdoc"
-  (:require [piotr-yuxuan.slava.encode :refer [encode]]
+  (:require [piotr-yuxuan.slava.config :as config]
             [piotr-yuxuan.slava.decode :refer [decode]]
-            [piotr-yuxuan.slava.config :as config])
+            [piotr-yuxuan.slava.encode :refer [encode]])
   (:import (io.confluent.kafka.schemaregistry.avro AvroSchema)
            (io.confluent.kafka.schemaregistry.client SchemaRegistryClient)
            (io.confluent.kafka.serializers KafkaAvroSerializer KafkaAvroSerializerConfig KafkaAvroDeserializer)
