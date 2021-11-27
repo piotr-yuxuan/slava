@@ -1,4 +1,4 @@
-"clojure-complete","0.2.5","Eclipse Public License"
+"org.nrepl/incomplete","0.1.0","EPL-2.0 OR GPL-2.0-or-later WITH Classpath-exception-2.0"
 "io.confluent/kafka-schema-registry-client","6.1.1","Apache License 2.0"
 "io.aleph/dirigiste","0.1.5","MIT License"
 "com.sun.activation/jakarta.activation","1.2.2","EDL 1.0"
