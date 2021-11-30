@@ -102,7 +102,7 @@
     ;; Explicit example of a decoder
     :decoder/avro-enum (fn enum-decoder-compiler [_config ^Schema$EnumSchema _reader-schema]
                          (fn enum-decoder [^GenericData$EnumSymbol data]
-                           (csk/->kebab-case-keyword (.toString data))))
+                           (csk/->kebab-case-keyword (str data))))
 
     ;; Explicit example of an encoder
     :encoder/avro-enum (fn enum-encoder-compiler [_config ^Schema$EnumSchema writer-schema]
