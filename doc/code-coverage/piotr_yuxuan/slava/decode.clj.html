@@ -1,0 +1,332 @@
+<html>
+ <head>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <link rel="stylesheet" href="../../coverage.css"/>  <title> piotr_yuxuan/slava/decode.clj </title>
+ </head>
+ <body>
+<span class="covered" title="1 out of 1 forms covered">
+                001&nbsp;&nbsp;(ns&nbsp;piotr-yuxuan.slava.decode
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                002&nbsp;&nbsp;&nbsp;&nbsp;&quot;FIXME&nbsp;add&nbsp;cljdoc&quot;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                003&nbsp;&nbsp;&nbsp;&nbsp;(:require&nbsp;[camel-snake-kebab.core&nbsp;:as&nbsp;csk]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                004&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[clojure.string&nbsp;:as&nbsp;str]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                005&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[potemkin&nbsp;:refer&nbsp;[def-map-type]])
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                006&nbsp;&nbsp;&nbsp;&nbsp;(:import&nbsp;(org.apache.avro&nbsp;Schema$Field&nbsp;Schema&nbsp;Schema$MapSchema&nbsp;Schema$RecordSchema&nbsp;Schema$ArraySchema&nbsp;Schema$UnionSchema)
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                007&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(org.apache.avro.generic&nbsp;GenericData$Record&nbsp;GenericData$Array)
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                008&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(piotr_yuxuan.slava.slava_record&nbsp;SlavaGenericRecord)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                009&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                010&nbsp;&nbsp;(defn&nbsp;decoder-name
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                011&nbsp;&nbsp;&nbsp;&nbsp;&quot;FIXME&nbsp;add&nbsp;cljdoc&quot;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                012&nbsp;&nbsp;&nbsp;&nbsp;[^Schema&nbsp;avro-schema]
+                </span><br/>
+<span class="not-covered" title="0 out of 2 forms covered">
+                013&nbsp;&nbsp;&nbsp;&nbsp;(-&gt;&gt;&nbsp;avro-schema
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                014&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.getType)
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                015&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;str
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                016&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;csk&#x2F;-&gt;kebab-case-string
+                </span><br/>
+<span class="not-covered" title="0 out of 6 forms covered">
+                017&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(conj&nbsp;[&quot;avro&quot;])
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                018&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(str&#x2F;join&nbsp;&quot;-&quot;)
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                019&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(keyword&nbsp;&quot;decoder&quot;)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                020&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="2 out of 2 forms covered">
+                021&nbsp;&nbsp;(declare&nbsp;-decoder-fn)
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                022&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                023&nbsp;&nbsp;(defn&nbsp;field-decoders
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                024&nbsp;&nbsp;&nbsp;&nbsp;&quot;Return&nbsp;a&nbsp;map.&nbsp;The&nbsp;keys&nbsp;are&nbsp;the&nbsp;field&nbsp;names&nbsp;in&nbsp;the&nbsp;Clojure
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                025&nbsp;&nbsp;&nbsp;&nbsp;convention,&nbsp;the&nbsp;value&nbsp;are&nbsp;function&nbsp;that&nbsp;accept&nbsp;one&nbsp;argument&nbsp;`data`
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                026&nbsp;&nbsp;&nbsp;&nbsp;and&nbsp;return&nbsp;the&nbsp;field&nbsp;value,&nbsp;converted&nbsp;if&nbsp;need&nbsp;be.&quot;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                027&nbsp;&nbsp;&nbsp;&nbsp;[{:keys&nbsp;[record-key-fn]&nbsp;:or&nbsp;{record-key-fn&nbsp;identity}&nbsp;:as&nbsp;config}&nbsp;^Schema$RecordSchema&nbsp;schema]
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                028&nbsp;&nbsp;&nbsp;&nbsp;(reduce&nbsp;(fn&nbsp;[acc&nbsp;^Schema$Field&nbsp;field]
+                </span><br/>
+<span class="not-covered" title="0 out of 5 forms covered">
+                029&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[record-key&nbsp;(record-key-fn&nbsp;config&nbsp;schema)
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                030&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;field-name&nbsp;(.name&nbsp;field)
+                </span><br/>
+<span class="not-covered" title="0 out of 13 forms covered">
+                031&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;field-getter&nbsp;(if-let&nbsp;[value-decoder&nbsp;(-decoder-fn&nbsp;(assoc&nbsp;config&nbsp;:field-name&nbsp;field-name)&nbsp;(.schema&nbsp;field))]
+                </span><br/>
+<span class="not-covered" title="0 out of 5 forms covered">
+                032&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fn&nbsp;[^GenericData$Record&nbsp;data]&nbsp;(value-decoder&nbsp;(.get&nbsp;data&nbsp;field-name)))
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                033&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fn&nbsp;[^GenericData$Record&nbsp;data]&nbsp;(.get&nbsp;data&nbsp;field-name)))]
+                </span><br/>
+<span class="not-covered" title="0 out of 7 forms covered">
+                034&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(assoc&nbsp;acc&nbsp;(record-key&nbsp;field-name)&nbsp;field-getter)))
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                035&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{}
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                036&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.getFields&nbsp;schema)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                037&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                038&nbsp;&nbsp;(defn&nbsp;^SlavaGenericRecord&nbsp;avro-record
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                039&nbsp;&nbsp;&nbsp;&nbsp;&quot;FIXME&nbsp;add&nbsp;cljdoc&quot;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                040&nbsp;&nbsp;&nbsp;&nbsp;[{:keys&nbsp;[record-key-fn]&nbsp;:or&nbsp;{record-key-fn&nbsp;identity}&nbsp;:as&nbsp;config}&nbsp;^Schema$RecordSchema&nbsp;schema]
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                041&nbsp;&nbsp;&nbsp;&nbsp;(fn&nbsp;[^GenericData$Record&nbsp;generic-record]
+                </span><br/>
+<span class="not-covered" title="0 out of 5 forms covered">
+                042&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(-&gt;&gt;&nbsp;(field-decoders&nbsp;config&nbsp;schema)
+                </span><br/>
+<span class="not-covered" title="0 out of 6 forms covered">
+                043&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(assoc&nbsp;(meta&nbsp;generic-record)&nbsp;:piotr-yuxuan.slava&#x2F;field-decoders)
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                044&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(SlavaGenericRecord.&nbsp;generic-record))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                045&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                046&nbsp;&nbsp;(defn&nbsp;avro-array
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                047&nbsp;&nbsp;&nbsp;&nbsp;&quot;FIXME&nbsp;add&nbsp;cljdoc&quot;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                048&nbsp;&nbsp;&nbsp;&nbsp;[config&nbsp;^Schema$ArraySchema&nbsp;reader-schema]
+                </span><br/>
+<span class="not-covered" title="0 out of 10 forms covered">
+                049&nbsp;&nbsp;&nbsp;&nbsp;(when-let&nbsp;[value-decoder&nbsp;(-decoder-fn&nbsp;config&nbsp;(.getElementType&nbsp;reader-schema))]
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                050&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fn&nbsp;[^GenericData$Array&nbsp;data]
+                </span><br/>
+<span class="not-covered" title="0 out of 5 forms covered">
+                051&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(vary-meta
+                </span><br/>
+<span class="not-covered" title="0 out of 4 forms covered">
+                052&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(map&nbsp;value-decoder&nbsp;data)
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                053&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assoc
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                054&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:piotr-yuxuan.slava&#x2F;type&nbsp;:avro-array
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                055&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:piotr-yuxuan.slava&#x2F;reader-schema&nbsp;reader-schema))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                056&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                057&nbsp;&nbsp;(defn&nbsp;avro-map
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                058&nbsp;&nbsp;&nbsp;&nbsp;&quot;FIXME&nbsp;add&nbsp;cljdoc&quot;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                059&nbsp;&nbsp;&nbsp;&nbsp;[config&nbsp;^Schema$MapSchema&nbsp;reader-schema]
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                060&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[{:decoder&#x2F;keys&nbsp;[map-key-fn]}&nbsp;config
+                </span><br/>
+<span class="not-covered" title="0 out of 4 forms covered">
+                061&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;map-key&nbsp;(map-key-fn&nbsp;config&nbsp;reader-schema)
+                </span><br/>
+<span class="not-covered" title="0 out of 2 forms covered">
+                062&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;value-decoder&nbsp;(-decoder-fn
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                063&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;&nbsp;Don&#x27;t&nbsp;proprate&nbsp;field-name&nbsp;any&nbsp;deeper
+                </span><br/>
+<span class="not-covered" title="0 out of 4 forms covered">
+                064&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(dissoc&nbsp;config&nbsp;:field-name)
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                065&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(.getValueType&nbsp;reader-schema))
+                </span><br/>
+<span class="not-covered" title="0 out of 6 forms covered">
+                066&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;meta-wrapper&nbsp;#(vary-meta&nbsp;%
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                067&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;assoc
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                068&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:piotr-yuxuan.slava&#x2F;type&nbsp;:avro-map
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                069&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:piotr-yuxuan.slava&#x2F;reader-schema&nbsp;reader-schema)]
+                </span><br/>
+<span class="not-covered" title="0 out of 30 forms covered">
+                070&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(cond&nbsp;(and&nbsp;map-key&nbsp;value-decoder)&nbsp;(comp&nbsp;meta-wrapper&nbsp;#(-&gt;&gt;&nbsp;%&nbsp;(map&nbsp;(juxt&nbsp;(comp&nbsp;map-key&nbsp;key)&nbsp;(comp&nbsp;value-decoder&nbsp;val)))&nbsp;(into&nbsp;{})))
+                </span><br/>
+<span class="not-covered" title="0 out of 18 forms covered">
+                071&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;value-decoder&nbsp;(comp&nbsp;meta-wrapper&nbsp;#(-&gt;&gt;&nbsp;%&nbsp;(map&nbsp;(juxt&nbsp;key&nbsp;(comp&nbsp;value-decoder&nbsp;val)))&nbsp;(into&nbsp;{})))
+                </span><br/>
+<span class="not-covered" title="0 out of 18 forms covered">
+                072&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;map-key&nbsp;(comp&nbsp;meta-wrapper&nbsp;#(-&gt;&gt;&nbsp;%&nbsp;(map&nbsp;(juxt&nbsp;(comp&nbsp;map-key&nbsp;key)&nbsp;val))&nbsp;(into&nbsp;{})))
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                073&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:else&nbsp;meta-wrapper)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                074&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                075&nbsp;&nbsp;(defn&nbsp;avro-union
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                076&nbsp;&nbsp;&nbsp;&nbsp;&quot;FIXME&nbsp;add&nbsp;cljdoc&quot;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                077&nbsp;&nbsp;&nbsp;&nbsp;[{:keys&nbsp;[generic-concrete-types]&nbsp;:as&nbsp;config}&nbsp;^Schema$UnionSchema&nbsp;reader-schema]
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                078&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[possible-decoders&nbsp;(-&gt;&gt;&nbsp;(.getTypes&nbsp;reader-schema)
+                </span><br/>
+<span class="not-covered" title="0 out of 9 forms covered">
+                079&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(map&nbsp;(juxt&nbsp;decoder-name&nbsp;(partial&nbsp;-decoder-fn&nbsp;config)))
+                </span><br/>
+<span class="not-covered" title="0 out of 6 forms covered">
+                080&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(remove&nbsp;(comp&nbsp;nil?&nbsp;second))
+                </span><br/>
+<span class="not-covered" title="0 out of 2 forms covered">
+                081&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(into&nbsp;{}))
+                </span><br/>
+<span class="not-covered" title="0 out of 6 forms covered">
+                082&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;decoded-types&nbsp;(select-keys&nbsp;generic-concrete-types&nbsp;(keys&nbsp;possible-decoders))]
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                083&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;&nbsp;If&nbsp;no&nbsp;types&nbsp;in&nbsp;the&nbsp;union&nbsp;need&nbsp;a&nbsp;decode,&nbsp;no&nbsp;need&nbsp;to&nbsp;find&nbsp;some.
+                </span><br/>
+<span class="not-covered" title="0 out of 5 forms covered">
+                084&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(when&nbsp;(seq&nbsp;decoded-types)
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                085&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fn&nbsp;[data]
+                </span><br/>
+<span class="not-covered" title="0 out of 7 forms covered">
+                086&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(if-let&nbsp;[found-decoder&nbsp;(-&gt;&gt;&nbsp;decoded-types
+                </span><br/>
+<span class="not-covered" title="0 out of 9 forms covered">
+                087&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(some&nbsp;(fn&nbsp;[[avro-type&nbsp;pred]]&nbsp;(when&nbsp;(pred&nbsp;data)&nbsp;avro-type)))
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                088&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(get&nbsp;possible-decoders))]
+                </span><br/>
+<span class="not-covered" title="0 out of 3 forms covered">
+                089&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(found-decoder&nbsp;data)
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                090&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;&nbsp;If&nbsp;the&nbsp;concrete&nbsp;type&nbsp;doesn&#x27;t&nbsp;need&nbsp;to&nbsp;be&nbsp;decoded,&nbsp;return&nbsp;datum&nbsp;as&nbsp;is.
+                </span><br/>
+<span class="not-covered" title="0 out of 1 forms covered">
+                091&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data)))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                092&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                093&nbsp;&nbsp;(defn&nbsp;-decoder-fn
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                094&nbsp;&nbsp;&nbsp;&nbsp;&quot;FIXME&nbsp;add&nbsp;cljdoc&quot;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                095&nbsp;&nbsp;&nbsp;&nbsp;[config&nbsp;^Schema&nbsp;reader-schema]
+                </span><br/>
+<span class="not-covered" title="0 out of 11 forms covered">
+                096&nbsp;&nbsp;&nbsp;&nbsp;(when-let&nbsp;[decoder-fn-fn&nbsp;(get&nbsp;config&nbsp;(decoder-name&nbsp;reader-schema))]
+                </span><br/>
+<span class="not-covered" title="0 out of 4 forms covered">
+                097&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(decoder-fn-fn&nbsp;config&nbsp;reader-schema)))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                098&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                099&nbsp;&nbsp;(def&nbsp;^{:arglists&nbsp;&#x27;([config&nbsp;^org.apache.avro.Schema&nbsp;reader-schema])
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                100&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:doc&nbsp;&quot;FIXME&nbsp;add&nbsp;cljdoc&quot;}
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                101&nbsp;&nbsp;&nbsp;&nbsp;;;&nbsp;The&nbsp;assumption&nbsp;is&nbsp;that&nbsp;we&nbsp;won&#x27;t&nbsp;see&nbsp;a&nbsp;lot&nbsp;of&nbsp;schemas&nbsp;here,&nbsp;so&nbsp;we&nbsp;can&nbsp;build&nbsp;a&nbsp;encoder&nbsp;only&nbsp;once.
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                102&nbsp;&nbsp;&nbsp;&nbsp;decoder-fn
+                </span><br/>
+<span class="covered" title="3 out of 3 forms covered">
+                103&nbsp;&nbsp;&nbsp;&nbsp;(memoize&nbsp;-decoder-fn))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                104&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                105&nbsp;&nbsp;(defn&nbsp;decode
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                106&nbsp;&nbsp;&nbsp;&nbsp;&quot;FIXME&nbsp;add&nbsp;cljdoc&quot;
+                </span><br/>
+<span class="not-tracked" title="0 out of 0 forms covered">
+                107&nbsp;&nbsp;&nbsp;&nbsp;[config&nbsp;data&nbsp;^Schema&nbsp;reader-schema]
+                </span><br/>
+<span class="not-covered" title="0 out of 6 forms covered">
+                108&nbsp;&nbsp;&nbsp;&nbsp;((decoder-fn&nbsp;config&nbsp;reader-schema)&nbsp;data))
+                </span><br/>
+ </body>
+</html>
