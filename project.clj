@@ -21,7 +21,7 @@
                                       "avro-kafka" "avro-schema-registry"]}
              :provided {:dependencies [[org.clojure/clojure "1.10.3"]]}
              :dev {:global-vars {*warn-on-reflection* true}}
-             :test {:dependencies [[com.bakdata.fluent-kafka-streams-tests/schema-registry-mock "2.4.3"]
+             :test {:dependencies [[com.bakdata.fluent-kafka-streams-tests/schema-registry-mock "2.5.0"]
                                    [org.apache.kafka/kafka-clients "6.1.1-ce"]
                                    [org.apache.kafka/kafka-streams-test-utils "6.1.1-ce"]]}
              :jar {:jvm-opts ["-Dclojure.compiler.disable-locals-clearing=false"
