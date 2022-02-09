@@ -21,3 +21,4 @@ checkouts
 perf/terraform*
 perf/.terraform*
 perf/.terraform/**
+/pom.xml
