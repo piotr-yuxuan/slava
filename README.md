@@ -4,7 +4,8 @@ Kafka Avro Serde for Clojure.
 
 # Installation
 
-[![](https://img.shields.io/clojars/v/piotr-yuxuan/slava.svg)](https://clojars.org/piotr-yuxuan/slava)
+[![Clojars badge](https://img.shields.io/clojars/v/piotr-yuxuan/slava.svg)](https://clojars.org/piotr-yuxuan/slava)
+[![Clojars downloads](https://img.shields.io/clojars/dt/piotr-yuxuan/slava)](https://clojars.org/piotr-yuxuan/piotr-yuxuan/slava)
 [![cljdoc badge](https://cljdoc.org/badge/piotr-yuxuan/slava)](https://cljdoc.org/d/piotr-yuxuan/slava/CURRENT)
 [![GitHub license](https://img.shields.io/github/license/piotr-yuxuan/slava)](https://github.com/piotr-yuxuan/slava/blob/main/LICENSE)
 [![GitHub issues](https://img.shields.io/github/issues/piotr-yuxuan/slava)](https://github.com/piotr-yuxuan/slava/issues)
