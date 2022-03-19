@@ -1,7 +1,12 @@
 Checking dependencies for stdin  ...
   using nvd-clojure:  and dependency-check: 6.5.3
++-----------------------------+----------------+
+| dependency                  | status         |
++-----------------------------+----------------+
+| jackson-databind-2.12.5.jar | CVE-2020-36518 |
++-----------------------------+----------------+
 
-0 vulnerabilities detected. Severity: NONE
+1 vulnerabilities detected. Severity: MEDIUM
 Detailed reports saved in: /home/runner/work/slava/slava/target/nvd
 
    *** THIS REPORT IS WITHOUT WARRANTY ***
