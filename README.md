@@ -4,6 +4,7 @@ Kafka Avro Serde for Clojure.
 
 # Installation
 
+[![Build status](https://img.shields.io/github/workflow/status/piotr-yuxuan/slava/Walter%20CD)](https://github.com/piotr-yuxuan/slava/actions/workflows/walter-cd.yml)
 [![Clojars badge](https://img.shields.io/clojars/v/piotr-yuxuan/slava.svg)](https://clojars.org/piotr-yuxuan/slava)
 [![Clojars downloads](https://img.shields.io/clojars/dt/piotr-yuxuan/slava)](https://clojars.org/piotr-yuxuan/piotr-yuxuan/slava)
 [![cljdoc badge](https://cljdoc.org/badge/piotr-yuxuan/slava)](https://cljdoc.org/d/piotr-yuxuan/slava/CURRENT)
