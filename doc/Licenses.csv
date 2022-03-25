@@ -4,7 +4,7 @@
 "io.aleph/dirigiste","0.1.5","MIT License"
 "org.apache.kafka/kafka-clients","7.0.1-ccs","The Apache License, Version 2.0"
 "io.confluent/kafka-schema-serializer","7.0.1","Apache License 2.0"
-"org.clojure/clojure","1.11.0-rc1","Eclipse Public License 1.0"
+"org.clojure/clojure","1.11.0","Eclipse Public License 1.0"
 "org.slf4j/slf4j-api","1.7.32","MIT License"
 "com.fasterxml.jackson.core/jackson-annotations","2.12.5","The Apache Software License, Version 2.0"
 "org.xerial.snappy/snappy-java","1.1.8.1","Apache-2.0"
