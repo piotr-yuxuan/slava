@@ -16,7 +16,8 @@
   :aot :all
   :profiles {:github {:github/topics ["clojure" "kafka" "avro" "schema-registry"
                                       "serdes" "serde" "confluent" "kafka-streams"
-                                      "avro-kafka" "avro-schema-registry"]}
+                                      "avro-kafka" "avro-schema-registry"]
+                      :github/private? false}
              :provided {:dependencies [[org.clojure/clojure "1.11.0"]
                                        [io.confluent/kafka-avro-serializer "7.0.1"]
                                        [org.apache.avro/avro "1.11.0"]]}
