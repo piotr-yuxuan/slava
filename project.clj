@@ -19,7 +19,7 @@
                                       "avro-kafka" "avro-schema-registry"]
                       :github/private? false}
              :provided {:dependencies [[org.clojure/clojure "1.11.1"]
-                                       [io.confluent/kafka-avro-serializer "7.0.2"]
+                                       [io.confluent/kafka-avro-serializer "7.1.0"]
                                        [org.apache.avro/avro "1.11.0"]]}
              :dev {:global-vars {*warn-on-reflection* true}}
              :test {:dependencies [[com.bakdata.fluent-kafka-streams-tests/schema-registry-mock "2.5.3"]
