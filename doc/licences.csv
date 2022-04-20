@@ -1,0 +1,11 @@
+Library name,Version,License name
+"byte-streams","0.2.5-alpha2","MIT License"
+"camel-snake-kebab","0.4.2","Eclipse Public License"
+"clj-tuple","0.2.2","MIT License"
+"com.github.piotr-yuxuan/slava-record","0.0.1","European Union Public License 1.2 or later"
+"io.aleph/dirigiste","0.1.5","MIT License"
+"manifold","0.1.8","MIT License"
+"org.clojure/tools.logging","0.3.1","Eclipse Public License 1.0"
+"potemkin","0.4.5","MIT License"
+"primitive-math","0.1.6","MIT License"
+"riddley","0.1.12","MIT License"
