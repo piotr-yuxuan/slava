@@ -1,6 +1,6 @@
 Library name,Version,License name
 "byte-streams","0.2.5-alpha2","MIT License"
-"camel-snake-kebab","0.4.2","Eclipse Public License"
+"camel-snake-kebab","0.4.3","Eclipse Public License 1.0"
 "clj-tuple","0.2.2","MIT License"
 "com.github.piotr-yuxuan/slava-record","0.0.1","European Union Public License 1.2 or later"
 "io.aleph/dirigiste","0.1.5","MIT License"
