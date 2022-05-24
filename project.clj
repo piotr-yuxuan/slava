@@ -10,7 +10,7 @@
                               [:name "胡雨軒 Петр"]
                               [:url "https://github.com/piotr-yuxuan"]]]
   :dependencies [[byte-streams/byte-streams "0.2.5-alpha2"]
-                 [camel-snake-kebab/camel-snake-kebab "0.4.2"]
+                 [camel-snake-kebab/camel-snake-kebab "0.4.3"]
                  [com.github.piotr-yuxuan/slava-record "0.0.1"]
                  [potemkin/potemkin "0.4.5"]]
   :aot :all
