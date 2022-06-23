@@ -22,7 +22,7 @@
                                        [io.confluent/kafka-avro-serializer "7.1.1"]
                                        [org.apache.avro/avro "1.11.0"]]}
              :dev {:global-vars {*warn-on-reflection* true}}
-             :test {:dependencies [[com.bakdata.fluent-kafka-streams-tests/schema-registry-mock "2.5.5"]
+             :test {:dependencies [[com.bakdata.fluent-kafka-streams-tests/schema-registry-mock "2.6.0"]
                                    [org.apache.kafka/kafka-clients "7.1.1-ce"]
                                    [org.apache.kafka/kafka-streams-test-utils "7.1.1-ce"]]}
              :jar {:jvm-opts ["-Dclojure.compiler.disable-locals-clearing=false"
