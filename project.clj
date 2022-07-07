@@ -23,8 +23,8 @@
                                        [org.apache.avro/avro "1.11.0"]]}
              :dev {:global-vars {*warn-on-reflection* true}}
              :test {:dependencies [[com.bakdata.fluent-kafka-streams-tests/schema-registry-mock "2.6.0"]
-                                   [org.apache.kafka/kafka-clients "7.1.2-ce"]
-                                   [org.apache.kafka/kafka-streams-test-utils "7.1.2-ce"]]}
+                                   [org.apache.kafka/kafka-clients "7.2.0-ce"]
+                                   [org.apache.kafka/kafka-streams-test-utils "7.2.0-ce"]]}
              :jar {:jvm-opts ["-Dclojure.compiler.disable-locals-clearing=false"
                               "-Dclojure.compiler.direct-linking=true"]}
              :kaocha [:test {:dependencies [[lambdaisland/kaocha "1.68.1059"]]}]}
