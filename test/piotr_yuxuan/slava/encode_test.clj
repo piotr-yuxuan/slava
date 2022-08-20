@@ -1,7 +1,7 @@
 (ns piotr-yuxuan.slava.encode-test
-  (:require [clojure.test :refer [deftest testing are is]]
+  (:require [piotr-yuxuan.slava.config :as config]
             [piotr-yuxuan.slava.encode :as encode]
-            [piotr-yuxuan.slava.config :as config])
+            [clojure.test :refer [deftest testing are is]])
   (:import (piotr_yuxuan.slava.slava_record SlavaGenericRecord)
            (org.apache.avro SchemaBuilder SchemaBuilder$NamespacedBuilder SchemaBuilder$RecordBuilder SchemaBuilder$FieldAssembler SchemaBuilder$UnionAccumulator)
            (org.apache.avro.generic GenericData$Record GenericRecordBuilder)))

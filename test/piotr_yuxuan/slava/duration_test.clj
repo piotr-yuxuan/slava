@@ -1,6 +1,6 @@
 (ns piotr-yuxuan.slava.duration-test
-  (:require [clojure.test :refer [deftest testing is]]
-            [piotr-yuxuan.slava.duration :as duration]))
+  (:require [piotr-yuxuan.slava.duration :as duration]
+            [clojure.test :refer [deftest testing is]]))
 
 (deftest duration-test
   (testing "duration"
