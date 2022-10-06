@@ -12,7 +12,7 @@
   :dependencies [[byte-streams/byte-streams "0.2.5-alpha2"]
                  [camel-snake-kebab/camel-snake-kebab "0.4.3"]
                  [com.github.piotr-yuxuan/slava-record "0.0.1"]
-                 [potemkin/potemkin "0.4.5"]]
+                 [potemkin/potemkin "0.4.6"]]
   :aot :all
   :profiles {:github {:github/topics ["clojure" "kafka" "avro" "schema-registry"
                                       "serdes" "serde" "confluent" "kafka-streams"
