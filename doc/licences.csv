@@ -6,6 +6,6 @@ Library name,Version,License name
 "io.aleph/dirigiste","0.1.5","MIT License"
 "manifold","0.1.8","MIT License"
 "org.clojure/tools.logging","0.3.1","Eclipse Public License 1.0"
-"potemkin","0.4.5","MIT License"
+"potemkin","0.4.6","MIT License"
 "primitive-math","0.1.6","MIT License"
 "riddley","0.1.12","MIT License"
