@@ -27,7 +27,7 @@
                                    [org.apache.kafka/kafka-streams-test-utils "7.5.0-ce"]]}
              :jar {:jvm-opts ["-Dclojure.compiler.disable-locals-clearing=false"
                               "-Dclojure.compiler.direct-linking=true"]}
-             :kaocha [:test {:dependencies [[lambdaisland/kaocha "1.85.1342"]]}]}
+             :kaocha [:test {:dependencies [[lambdaisland/kaocha "1.86.1355"]]}]}
   :repositories [["confluent" {:url "https://packages.confluent.io/maven/"}]]
   :deploy-repositories [["clojars" {:sign-releases false
                                     :url "https://clojars.org/repo"
