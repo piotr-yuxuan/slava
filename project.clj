@@ -19,11 +19,11 @@
                                       "avro-kafka" "avro-schema-registry"]
                       :github/private? false}
              :provided {:dependencies [[org.clojure/clojure "1.12.0-alpha4"]
-                                       [io.confluent/kafka-avro-serializer "7.5.0"]
+                                       [io.confluent/kafka-avro-serializer "7.5.1"]
                                        [org.apache.avro/avro "1.11.3"]]}
              :dev {:global-vars {*warn-on-reflection* true}}
              :test {:dependencies [[com.bakdata.fluent-kafka-streams-tests/schema-registry-mock "2.9.0"]
-                                   [org.apache.kafka/kafka-clients "7.5.0-ce"]
+                                   [org.apache.kafka/kafka-clients "7.5.1-ce"]
                                    [org.apache.kafka/kafka-streams-test-utils "7.5.0-ce"]]}
              :jar {:jvm-opts ["-Dclojure.compiler.disable-locals-clearing=false"
                               "-Dclojure.compiler.direct-linking=true"]}
