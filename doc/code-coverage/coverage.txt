@@ -2,6 +2,6 @@ Lines Non-Blank Instrumented Covered Partial
   108        98           65      12       0 piotr_yuxuan/slava/decode.clj
   126       112           69      61       6 piotr_yuxuan/slava/encode.clj
   118       107           66      50       0 piotr_yuxuan/slava/config.clj
-  117       105           62      50       1 piotr_yuxuan/slava.clj
+  117       105           62      53       0 piotr_yuxuan/slava.clj
    44        39           26      21       0 piotr_yuxuan/slava/duration.clj
    31        29           18       3       0 piotr_yuxuan/slava/conversions.clj
