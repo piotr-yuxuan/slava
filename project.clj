@@ -18,7 +18,7 @@
                                       "serdes" "serde" "confluent" "kafka-streams"
                                       "avro-kafka" "avro-schema-registry"]
                       :github/private? false}
-             :provided {:dependencies [[org.clojure/clojure "1.12.0-alpha11"]
+             :provided {:dependencies [[org.clojure/clojure "1.12.0-alpha12"]
                                        [io.confluent/kafka-avro-serializer "7.6.1"]
                                        [org.apache.avro/avro "1.11.3"]]}
              :dev {:global-vars {*warn-on-reflection* true}}
@@ -27,7 +27,7 @@
                                    [org.apache.kafka/kafka-streams-test-utils "7.6.1-ce"]]}
              :jar {:jvm-opts ["-Dclojure.compiler.disable-locals-clearing=false"
                               "-Dclojure.compiler.direct-linking=true"]}
-             :kaocha [:test {:dependencies [[lambdaisland/kaocha "1.90.1383"]]}]}
+             :kaocha [:test {:dependencies [[lambdaisland/kaocha "1.91.1392"]]}]}
   :repositories [["confluent" {:url "https://packages.confluent.io/maven/"}]]
   :deploy-repositories [["clojars" {:sign-releases false
                                     :url "https://clojars.org/repo"
