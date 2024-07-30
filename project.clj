@@ -18,7 +18,7 @@
                                       "serdes" "serde" "confluent" "kafka-streams"
                                       "avro-kafka" "avro-schema-registry"]
                       :github/private? false}
-             :provided {:dependencies [[org.clojure/clojure "1.12.0-beta1"]
+             :provided {:dependencies [[org.clojure/clojure "1.12.0-beta2"]
                                        [io.confluent/kafka-avro-serializer "7.7.0"]
                                        [org.apache.avro/avro "1.11.3"]]}
              :dev {:global-vars {*warn-on-reflection* true}}
