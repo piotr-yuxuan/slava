@@ -18,13 +18,13 @@
                                       "serdes" "serde" "confluent" "kafka-streams"
                                       "avro-kafka" "avro-schema-registry"]
                       :github/private? false}
-             :provided {:dependencies [[org.clojure/clojure "1.12.5-rc1"]
-                                       [io.confluent/kafka-avro-serializer "8.2.0"]
+             :provided {:dependencies [[org.clojure/clojure "1.12.5"]
+                                       [io.confluent/kafka-avro-serializer "8.2.1"]
                                        [org.apache.avro/avro "1.12.1"]]}
              :dev {:global-vars {*warn-on-reflection* true}}
              :test {:dependencies [[com.bakdata.fluent-kafka-streams-tests/schema-registry-mock "2.16.0"]
-                                   [org.apache.kafka/kafka-clients "8.2.0-ce"]
-                                   [org.apache.kafka/kafka-streams-test-utils "8.2.0-ce"]]}
+                                   [org.apache.kafka/kafka-clients "8.2.1-ce"]
+                                   [org.apache.kafka/kafka-streams-test-utils "8.2.1-ce"]]}
              :jar {:jvm-opts ["-Dclojure.compiler.disable-locals-clearing=false"
                               "-Dclojure.compiler.direct-linking=true"]}
              :kaocha [:test {:dependencies [[lambdaisland/kaocha "1.91.1392"]]}]}
